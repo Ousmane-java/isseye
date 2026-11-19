@@ -1,0 +1,222 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────────────────────
+   ISSEYE — design system officiel, tiré du logo et des flacons :
+   crème du carton, lin du décor, or du monogramme, noir fumé du bouchon,
+   rose Luna et bois du bouchon en accents.
+   ───────────────────────────────────────────────────────────── */
+@theme {
+  /* Fonds */
+  --color-creme: #f6f1ea;       /* carton des boîtes : fond principal */
+  --color-lin: #e4d6c9;         /* décor des photos : fond secondaire */
+  --color-lin-clair: #eee5db;
+  --color-taupe: #a8968a;       /* ombres du décor : neutre doux, filets */
+
+  /* Or du monogramme */
+  --color-or: #c4974f;          /* accent signature */
+  --color-or-clair: #e5b65a;    /* reflets */
+  --color-bronze: #8b693e;      /* or lisible sur fond clair (texte, liens) */
+
+  /* Accents matière */
+  --color-rose: #e6cbbd;        /* flacon Luna */
+  --color-bois: #c98f5e;        /* bouchon en bois */
+
+  /* Contraste */
+  --color-noir: #1b1917;        /* noir fumé (bouchon) */
+  --color-noir-profond: #12100f;
+  --color-encre: #2a2622;       /* texte */
+  --color-gris: #7a6e64;        /* texte secondaire (contraste AA sur crème) */
+
+  --font-display: var(--font-cormorant), "Times New Roman", serif;
+  --font-sans: var(--font-manrope), system-ui, sans-serif;
+
+  --ease-luxe: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-silk: cubic-bezier(0.65, 0, 0.35, 1);
+
+  --animate-marquee: marquee 38s linear infinite;
+  --animate-rise: rise 1.2s var(--ease-luxe) both;
+  --animate-fade-up: fade-up 1s var(--ease-luxe) both;
+  --animate-fade: fade 1.4s var(--ease-luxe) both;
+  --animate-shimmer: shimmer 3.2s var(--ease-silk) infinite;
+  --animate-breathe: breathe 9s ease-in-out infinite;
+  --animate-drift: drift 22s ease-in-out infinite;
+  --animate-float: float 7s ease-in-out infinite;
+
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  @keyframes rise {
+    from { transform: translateY(105%); }
+    to { transform: translateY(0); }
+  }
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes shimmer {
+    0% { transform: translateX(-120%) skewX(-18deg); }
+    60%, 100% { transform: translateX(220%) skewX(-18deg); }
+  }
+  @keyframes breathe {
+    0%, 100% { transform: scale(1); opacity: 0.55; }
+    50% { transform: scale(1.12); opacity: 0.85; }
+  }
+  @keyframes drift {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(4%, -3%) scale(1.06); }
+    66% { transform: translate(-3%, 3%) scale(0.96); }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-14px); }
+  }
+}
+
+/* Mobile : la page ne doit jamais glisser de gauche à droite ; « clip » coupe les halos
+   décoratifs sans casser les éléments « sticky ». */
+html,
+body {
+  overflow-x: clip;
+  overscroll-behavior-x: none;
+}
+
+body {
+  background: var(--color-creme);
+  color: var(--color-encre);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--color-or);
+  color: var(--color-noir);
+}
+
+/* Bandeau d'annonce fermé par la visiteuse */
+[data-bar-closed="1"] .isy-bar {
+  display: none;
+}
+
+/* Lenis (défilement fluide) */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+/* Grain photographique très léger, pour un rendu « papier » */
+@utility grain {
+  position: relative;
+  &::after {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    opacity: 0.06;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+}
+
+/* Dorure : dégradé or du monogramme, pour les titres et chiffres d'exception */
+@utility text-dore {
+  background: linear-gradient(100deg, #8b693e 0%, #c4974f 30%, #e5b65a 50%, #c4974f 70%, #8b693e 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Haut des pages intérieures : laisse la place à l'en-tête fixe (et au bandeau d'annonce) */
+@utility page-top {
+  padding-top: calc(var(--bar-h, 0px) + 6.5rem);
+  @media (width >= 40rem) {
+    padding-top: calc(var(--bar-h, 0px) + 8.5rem);
+  }
+}
+
+@utility eyebrow {
+  @apply text-[11px] font-semibold tracking-[0.32em] uppercase;
+}
+
+/* Filet doré « — POCKET PARFUM — » des étiquettes */
+@utility filet {
+  @apply inline-flex items-center gap-3 before:h-px before:w-6 before:bg-current before:opacity-60 after:h-px after:w-6 after:bg-current after:opacity-60;
+}
+
+@utility btn {
+  @apply relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-full px-7 py-3.5 text-[12px] font-semibold tracking-[0.18em] uppercase transition duration-500 ease-(--ease-luxe) active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
+}
+@utility btn-primary {
+  @apply btn bg-noir text-creme hover:bg-bronze hover:shadow-[0_18px_40px_-18px_rgba(139,105,62,0.9)];
+}
+@utility btn-gold {
+  @apply btn bg-or text-noir hover:bg-or-clair hover:shadow-[0_18px_40px_-18px_rgba(196,151,79,0.9)];
+}
+@utility btn-light {
+  @apply btn bg-creme text-noir hover:bg-white;
+}
+@utility btn-outline {
+  @apply btn border border-current/25 hover:border-current;
+}
+
+/* Champs de formulaire (site et admin) */
+@utility field {
+  @apply w-full rounded-xl border border-encre/12 bg-white px-4 py-3 text-[15px] text-encre transition outline-none placeholder:text-gris/60 focus:border-bronze focus:ring-4 focus:ring-or/15 disabled:bg-lin/40;
+}
+@utility label {
+  @apply mb-1.5 block text-sm font-medium text-encre;
+}
+
+/* Texte riche (descriptions produits, pages légales) */
+@utility prose-isseye {
+  @apply text-[15px] leading-relaxed text-encre/85;
+  & h2 {
+    @apply mt-10 mb-3 font-display text-3xl font-light text-encre;
+  }
+  & h3 {
+    @apply mt-8 mb-2 text-[15px] font-semibold text-encre;
+  }
+  & p {
+    @apply my-3;
+  }
+  & ul {
+    @apply my-3 list-disc space-y-1 pl-5 marker:text-or;
+  }
+  & ol {
+    @apply my-3 list-decimal space-y-1 pl-5 marker:text-bronze;
+  }
+  & a {
+    @apply text-bronze underline decoration-or/40 underline-offset-4 hover:decoration-bronze;
+  }
+  & strong {
+    @apply font-semibold text-encre;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  body {
+    background: white;
+  }
+}
