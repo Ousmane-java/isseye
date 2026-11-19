@@ -68,7 +68,7 @@ export async function getTemplate(key: string): Promise<EmailTemplate | null> {
 }
 
 /** HTML d'un modèle d'email avec ses variables (envoi et aperçu dans l'admin). */
-export async function renderTemplate(template: EmailTemplate, vars: Record<string, string | number | null | undefined>, opts: { ctaUrl?: string; extraHtml?: string } = {}) {
+export async function renderTemplate(template: EmailTemplate, vars: Record<string, string | number | null | undefined>, opts: { ctaUrl?: string; extraHtml?: string; unsubscribeUrl?: string } = {}) {
   return {
     subject: fillTemplate(template.subject, vars),
     html: emailLayout({
@@ -76,16 +76,28 @@ export async function renderTemplate(template: EmailTemplate, vars: Record<strin
       bodyHtml: markdownToHtml(fillTemplate(template.body, vars)),
       cta: template.cta_label && opts.ctaUrl ? { label: fillTemplate(template.cta_label, vars), url: opts.ctaUrl } : undefined,
       extraHtml: opts.extraHtml,
-      footer: await footerHtml(),
+      footer: (await footerHtml()) + (opts.unsubscribeUrl ? `<br><a href="${opts.unsubscribeUrl}" style="color:#a8968a">Ne plus recevoir nos offres</a>` : ""),
     }),
   };
+}
+
+/** Lien de désinscription d'une adresse inscrite à la newsletter (null si non inscrite). */
+export async function unsubscribeUrlFor(email: string) {
+  if (!isSupabaseConfigured) return null;
+  const { data } = await adminDb().from("newsletter_subscribers").select("unsubscribe_token").eq("email", email.toLowerCase()).is("unsubscribed_at", null).maybeSingle();
+  return data ? `${siteUrl}/desinscription?t=${data.unsubscribe_token}` : null;
 }
 
 /**
  * Envoie un modèle d'email (Admin › Emails) avec ses variables.
  * `ctaUrl` : lien du bouton ; `extraHtml` : récapitulatif de commande, code…
  */
-export async function sendTemplate(key: string, to: string, vars: Record<string, string | number | null | undefined>, opts: { ctaUrl?: string; extraHtml?: string; template?: EmailTemplate } = {}) {
+export async function sendTemplate(
+  key: string,
+  to: string,
+  vars: Record<string, string | number | null | undefined>,
+  opts: { ctaUrl?: string; extraHtml?: string; template?: EmailTemplate; unsubscribeUrl?: string } = {},
+) {
   const template = opts.template ?? (await getTemplate(key));
   if (!template || !template.enabled) return false;
   const { contact } = await getSettings();

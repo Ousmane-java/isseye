@@ -5,10 +5,10 @@ import { adminDb } from "@/lib/supabase";
 import { getSettings } from "@/lib/settings";
 import { getCurrencies } from "@/lib/currencies";
 import { getStripe } from "@/lib/stripe";
-import { adminUrl, sendEmail, sendTemplate, siteUrl } from "@/lib/email";
+import { adminUrl, sendEmail, sendTemplate, siteUrl, unsubscribeUrlFor } from "@/lib/email";
 import { formatMoney, type Currency } from "@/lib/currency";
 import { countryName } from "@/config/countries";
-import { trackingSteps, type OrderRow } from "@/lib/order-types";
+import { scheduleLabel, trackingSteps, type OrderRow } from "@/lib/order-types";
 
 // Cycle de vie d'une commande : paiement confirmé, préparation, expédition, livraison,
 // annulation et remboursement. Chaque étape met à jour le stock et prévient la cliente.
@@ -57,7 +57,8 @@ ${order.gift_wrap ? line("Emballage cadeau", m(order.gift_wrap)) : ""}
 ${line("Total", m(order.total), true)}
 ${order.tax_included ? line("Dont TVA", m(order.tax_included)) : ""}
 </table>
-<p style="margin:20px 0 0;font-size:13px;line-height:1.6;color:#7a6e64"><strong style="color:#2a2622">${order.delivery_type === "pickup" ? "Retrait à la boutique" : "Livraison"}</strong><br>${esc(order.first_name)} ${esc(order.last_name)}<br>${esc(order.ship_line1)}${order.ship_line2 ? `<br>${esc(order.ship_line2)}` : ""}<br>${esc(order.ship_postal_code)} ${esc(order.ship_city)}<br>${countryName(order.ship_country)}${pickupInfo}</p>`;
+${order.invoice_number ? `<p style="margin:14px 0 0;font-size:13px"><a href="${siteUrl}/facture/${order.access_token}" style="color:#8b693e">Télécharger la facture ${order.invoice_number} (PDF)</a></p>` : ""}
+<p style="margin:20px 0 0;font-size:13px;line-height:1.6;color:#7a6e64"><strong style="color:#2a2622">${order.delivery_type === "pickup" ? "Retrait à la boutique" : "Livraison"}</strong><br>${esc(order.first_name)} ${esc(order.last_name)}<br>${esc(order.ship_line1)}${order.ship_line2 ? `<br>${esc(order.ship_line2)}` : ""}<br>${esc(order.ship_postal_code)} ${esc(order.ship_city)}<br>${countryName(order.ship_country)}${pickupInfo}${scheduleLabel(order) ? `<br><strong style="color:#8b693e">${order.delivery_type === "pickup" ? "Retrait" : "Livraison"} : ${esc(scheduleLabel(order))}</strong>` : ""}</p>`;
 }
 
 async function orderVars(order: OrderRow) {
@@ -70,6 +71,7 @@ async function orderVars(order: OrderRow) {
     transporteur: order.carrier ?? "notre transporteur",
     suivi: order.tracking_number ?? "",
     lien_suivi: trackingLink(order),
+    creneau: scheduleLabel(order) ?? "",
   };
 }
 
@@ -90,6 +92,8 @@ export async function finalizePaidOrder(orderId: string, payment: { provider: st
   if (!order) return null;
 
   await db.rpc("commit_order_stock", { p_order: order.id });
+  const { data: invoiceNumber } = await db.rpc("assign_invoice_number", { p_order: order.id });
+  if (typeof invoiceNumber === "string") order.invoice_number = invoiceNumber;
   if (order.promo_code) await db.rpc("use_promo_code", { p_code: order.promo_code });
   if (order.marketing_consent) {
     await db.from("newsletter_subscribers").upsert({ email: order.email.toLowerCase(), first_name: order.first_name, source: "commande", unsubscribed_at: null }, { onConflict: "email" });
@@ -254,6 +258,7 @@ export async function sendCartReminder(order: OrderRow) {
   await sendTemplate("abandoned_cart", order.email, await orderVars(order), {
     ctaUrl: `${siteUrl}/panier/reprendre/${order.access_token}`,
     extraHtml: await orderSummaryHtml(order),
+    unsubscribeUrl: (await unsubscribeUrlFor(order.email)) ?? undefined,
   });
   await adminDb().from("orders").update({ reminder_sent_at: new Date().toISOString() }).eq("id", order.id);
 }

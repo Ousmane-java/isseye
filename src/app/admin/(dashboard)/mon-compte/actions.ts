@@ -21,3 +21,15 @@ export async function changePassword(_: ActionState, formData: FormData): Promis
   await audit(user, "update", "admin_user", user.id, "Mot de passe changé");
   return { ok: "Mot de passe changé." };
 }
+
+/** Après un lien « mot de passe oublié » : nouveau mot de passe sans l'ancien (session ouverte par le lien). */
+export async function setNewPassword(_: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await requireAdmin("dashboard");
+  const next = String(formData.get("next") ?? "");
+  if (next.length < 10) return { error: "Le mot de passe doit faire au moins 10 caractères." };
+  if (next !== String(formData.get("confirm") ?? "")) return { error: "Les deux mots de passe ne correspondent pas." };
+  const { error } = await adminDb().auth.admin.updateUserById(user.id, { password: next });
+  if (error) return { error: "Enregistrement impossible." };
+  await audit(user, "update", "admin_user", user.id, "Mot de passe réinitialisé");
+  return { ok: "Mot de passe enregistré." };
+}

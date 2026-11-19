@@ -22,7 +22,10 @@ const when: Record<string, string> = {
   back_in_stock: "Envoyé aux clientes inscrites quand un parfum épuisé revient.",
   contact_received: "Accusé de réception du formulaire de contact.",
   admin_new_order: "Reçu par l'équipe à chaque nouvelle commande.",
-  customer_login: "Modèle réservé (la connexion utilise l'email de Supabase).",
+  customer_login: "Ancien lien de connexion sans mot de passe (n'est plus utilisé).",
+  customer_verify: "Bienvenue : envoyé à la création d'un compte, avec le lien de confirmation de l'email.",
+  customer_reset: "Mot de passe oublié d'une cliente.",
+  admin_reset: "Mot de passe oublié d'un membre de l'équipe.",
 };
 
 function PreviewLink({ emailKey }: { emailKey: string }) {

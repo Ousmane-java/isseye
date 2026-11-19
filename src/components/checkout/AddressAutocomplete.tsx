@@ -30,7 +30,7 @@ async function search(q: string, near: { lat: number; lon: number } | null, sign
  * Champ adresse avec suggestions (France) : la cliente choisit son adresse exacte,
  * le code postal et la ville se remplissent seuls. `near` : les adresses proches de la boutique d'abord.
  */
-export function AddressAutocomplete({ value, onChange, onSelect, onBlur, enabled, near, autoFocus }: { value: string; onChange: (v: string) => void; onSelect: (s: AddressSuggestion) => void; onBlur?: () => void; enabled: boolean; near?: { lat: number; lon: number } | null; autoFocus?: boolean }) {
+export function AddressAutocomplete({ value, onChange, onSelect, onBlur, enabled, near, autoFocus, required = true }: { value: string; onChange: (v: string) => void; onSelect: (s: AddressSuggestion) => void; onBlur?: () => void; enabled: boolean; near?: { lat: number; lon: number } | null; autoFocus?: boolean; required?: boolean }) {
   const [items, setItems] = useState<AddressSuggestion[]>([]);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
@@ -103,7 +103,7 @@ export function AddressAutocomplete({ value, onChange, onSelect, onBlur, enabled
         aria-expanded={open}
         aria-controls={listId}
         aria-autocomplete="list"
-        required
+        required={required}
       />
       {open && (
         <ul id={listId} role="listbox" className="absolute inset-x-0 top-full z-20 mt-1 overflow-hidden rounded-xl bg-white py-1 shadow-xl ring-1 ring-encre/10">

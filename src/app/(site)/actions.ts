@@ -1,16 +1,17 @@
 "use server";
 
 import { z } from "zod";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { adminDb, authClient, isSupabaseConfigured } from "@/lib/supabase";
-import { buildCart } from "@/lib/cart";
+import { buildCart, slotSettings } from "@/lib/cart";
+import { isSlotAvailable } from "@/lib/slots";
 import { getProducts } from "@/lib/catalog";
 import { getVisitorCurrency } from "@/lib/currencies";
 import { getSettings } from "@/lib/settings";
 import { getStripe, paymentSimulated } from "@/lib/stripe";
 import { finalizePaidOrder } from "@/lib/orders";
 import { sendEmail, sendTemplate, siteUrl } from "@/lib/email";
+import { getCustomer } from "@/lib/customer";
 import type { CartRequest, CartView } from "@/lib/cart-types";
 import type { ProductSummary } from "@/lib/catalog-types";
 
@@ -51,6 +52,8 @@ const checkoutSchema = z.object({
   firstName: z.string().trim().min(1, "Prénom requis.").max(80),
   lastName: z.string().trim().min(1, "Nom requis.").max(80),
   delivery: z.enum(["livraison", "retrait"]).default("livraison"),
+  scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal("")).default(""),
+  scheduledSlot: z.string().max(20).optional().default(""),
   line1: z.string().trim().max(200).optional().default(""),
   line2: z.string().trim().max(200).optional().default(""),
   postalCode: z.string().trim().max(20).optional().default(""),
@@ -108,6 +111,15 @@ export async function placeOrder(input: CheckoutInput): Promise<CheckoutResult> 
   if (!cart.lines.length) return { error: "Votre panier est vide." };
   if (!cart.shipping.served) return { error: "Nous ne livrons pas encore ce pays.", fieldErrors: { country: "Pays non desservi." } };
   if (cart.shipping.selectedId !== data.methodId) return { error: "Ce mode de livraison n'est pas disponible pour ce pays.", fieldErrors: { methodId: "Mode indisponible." } };
+  // Créneau (retrait ou livraison locale) : obligatoire et encore disponible
+  const needsSlot = settings.delivery.slotsEnabled && (cart.shipping.mode === "pickup" || cart.shipping.mode === "local");
+  if (needsSlot) {
+    const kind = cart.shipping.mode === "pickup" ? "pickup" : "local";
+    if (!data.scheduledDate || !data.scheduledSlot) return { error: "Choisissez un jour et un créneau.", fieldErrors: { scheduledSlot: "Créneau requis." } };
+    if (!isSlotAvailable(slotSettings(settings.delivery, kind), data.scheduledDate, data.scheduledSlot)) {
+      return { error: "Ce créneau n'est plus disponible : choisissez-en un autre.", fieldErrors: { scheduledSlot: "Créneau indisponible." } };
+    }
+  }
   if (data.promoCode && !cart.promo?.ok) return { error: cart.promo?.message ?? "Code promo invalide.", fieldErrors: { promoCode: cart.promo?.message ?? "Code invalide." } };
 
   const currency = await getVisitorCurrency();
@@ -128,7 +140,10 @@ export async function placeOrder(input: CheckoutInput): Promise<CheckoutResult> 
       first_name: data.firstName,
       last_name: data.lastName,
       ...ship,
+      customer_id: (await getCustomer())?.id ?? null,
       delivery_type: cart.shipping.mode,
+      scheduled_date: needsSlot ? data.scheduledDate : null,
+      scheduled_slot: needsSlot ? data.scheduledSlot : null,
       delivery_distance_km: cart.shipping.distanceKm,
       currency_code: currency.code,
       fx_rate: currency.rate,
@@ -354,15 +369,18 @@ export async function wishlistProducts(ids: string[]): Promise<ProductSummary[]>
 // Espace cliente (facultatif) : connexion par lien envoyé par email
 // ─────────────────────────────────────────────────────────────
 
-export async function sendLoginLink(_: FormState, formData: FormData): Promise<FormState> {
-  const email = emailSchema.safeParse(String(formData.get("email") ?? "").trim());
-  if (!email.success) return { error: email.error.issues[0].message };
-  if (!isSupabaseConfigured) return { error: "L'espace cliente ouvre très bientôt." };
-  const origin = (await headers()).get("origin") ?? siteUrl;
-  const supabase = await authClient();
-  const { error } = await supabase.auth.signInWithOtp({ email: email.data, options: { emailRedirectTo: `${origin}/auth/confirm?next=/compte`, shouldCreateUser: true } });
-  if (error) return { error: error.status === 429 ? "Trop de demandes : patientez une minute." : "Envoi impossible pour le moment." };
-  return { ok: `Un lien de connexion vient d'être envoyé à ${email.data}. Il est valable une heure.` };
+/** Désinscription de la newsletter : par le lien des emails (jeton) ou en saisissant son adresse. */
+export async function unsubscribeNewsletter(_: FormState, formData: FormData): Promise<FormState> {
+  if (!isSupabaseConfigured) return { ok: "C'est noté." };
+  const token = String(formData.get("token") ?? "");
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const db = adminDb();
+  const query = db.from("newsletter_subscribers").update({ unsubscribed_at: new Date().toISOString() });
+  if (/^[a-f0-9]{32}$/.test(token)) await query.eq("unsubscribe_token", token);
+  else if (emailSchema.safeParse(email).success) await query.eq("email", email);
+  else return { error: "Adresse email invalide." };
+  // Même réponse que l'adresse soit inscrite ou non
+  return { ok: "C'est fait : vous ne recevrez plus la newsletter ISSEYE. Les emails liés à vos commandes continueront d'arriver." };
 }
 
 export async function logoutCustomer() {
@@ -389,4 +407,33 @@ export async function findOrder(_: FormState, formData: FormData): Promise<FormS
   const { data } = await adminDb().from("orders").select("access_token").eq("number", number.startsWith("ISY-") ? number : `ISY-${number}`).eq("email", email).maybeSingle();
   if (!data) return { error: "Aucune commande ne correspond à ces informations." };
   redirect(`/suivi/${data.access_token}`);
+}
+
+// ─────────────────────────────────────────────────────────────
+// Favoris liés au compte (cliente connectée) : fusion avec les favoris du navigateur
+// ─────────────────────────────────────────────────────────────
+
+const idList = (ids: unknown) => (Array.isArray(ids) ? ids.filter((id): id is string => typeof id === "string" && /^[0-9a-f-]{36}$/.test(id)).slice(0, 100) : []);
+
+/** Ajoute au compte les favoris du navigateur et renvoie la liste complète (null si non connectée). */
+export async function syncWishlist(localIds: string[]): Promise<string[] | null> {
+  const customer = await getCustomer();
+  if (!customer) return null;
+  const db = adminDb();
+  const ids = idList(localIds);
+  if (ids.length) {
+    const { data: existing } = await db.from("products").select("id").in("id", ids);
+    const valid = (existing ?? []).map((p) => p.id);
+    if (valid.length) await db.from("wishlists").upsert(valid.map((product_id) => ({ customer_id: customer.id, product_id })), { onConflict: "customer_id,product_id", ignoreDuplicates: true });
+  }
+  const { data } = await db.from("wishlists").select("product_id, created_at").eq("customer_id", customer.id).order("created_at", { ascending: false });
+  return (data ?? []).map((w) => w.product_id);
+}
+
+export async function setWishlistItem(productId: string, on: boolean) {
+  const customer = await getCustomer();
+  if (!customer || !/^[0-9a-f-]{36}$/.test(productId)) return;
+  const db = adminDb();
+  if (on) await db.from("wishlists").upsert({ customer_id: customer.id, product_id: productId }, { onConflict: "customer_id,product_id", ignoreDuplicates: true });
+  else await db.from("wishlists").delete().eq("customer_id", customer.id).eq("product_id", productId);
 }

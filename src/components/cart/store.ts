@@ -60,15 +60,27 @@ export const useCart = create<CartState>()(
   ),
 );
 
-type WishlistState = { ids: string[]; toggle: (productId: string) => void };
+type WishlistState = {
+  ids: string[];
+  /** Cliente connectée : chaque changement est aussi enregistré dans son compte. */
+  account: boolean;
+  toggle: (productId: string) => void;
+  setFromAccount: (ids: string[]) => void;
+};
 
 export const useWishlist = create<WishlistState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       ids: [],
-      toggle: (productId) => set((s) => ({ ids: s.ids.includes(productId) ? s.ids.filter((id) => id !== productId) : [productId, ...s.ids] })),
+      account: false,
+      toggle: (productId) => {
+        const on = !get().ids.includes(productId);
+        set((s) => ({ ids: on ? [productId, ...s.ids] : s.ids.filter((id) => id !== productId) }));
+        if (get().account) import("@/app/(site)/actions").then((m) => m.setWishlistItem(productId, on)).catch(() => {});
+      },
+      setFromAccount: (ids) => set({ ids, account: true }),
     }),
-    { name: "isseye-favoris", storage: createJSONStorage(() => localStorage) },
+    { name: "isseye-favoris", storage: createJSONStorage(() => localStorage), partialize: (s) => ({ ids: s.ids }) },
   ),
 );
 

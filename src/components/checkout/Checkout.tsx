@@ -14,6 +14,9 @@ import { Notices } from "@/components/cart/CartLines";
 import { PromoField } from "@/components/cart/PromoField";
 import type { AddressInput, DeliveryChoice } from "@/lib/cart-types";
 import { AddressAutocomplete } from "./AddressAutocomplete";
+import { SlotPicker } from "./SlotPicker";
+import { slotDayLabel, slotLabel } from "@/lib/slots";
+import type { CheckoutProfile } from "@/lib/customer";
 
 type Country = { code: string; name: string };
 type Form = { email: string; phone: string; firstName: string; lastName: string; line1: string; line2: string; postalCode: string; city: string; country: string; notes: string; marketing: boolean };
@@ -25,7 +28,23 @@ const empty = (country: string): Form => ({ email: "", phone: "", firstName: "",
  * Caisse sans compte : coordonnées, adresse, mode de livraison, cadeau, code promo,
  * puis paiement sécurisé Stripe. Les champs sont gardés dans le navigateur si la cliente revient.
  */
-export function Checkout({ countries, defaultCountry, cancelled, simulated, storeOpen, closedMessage }: { countries: Country[]; defaultCountry: string; cancelled: boolean; simulated: boolean; storeOpen: boolean; closedMessage: string }) {
+export function Checkout({
+  countries,
+  defaultCountry,
+  cancelled,
+  simulated,
+  storeOpen,
+  closedMessage,
+  profile,
+}: {
+  countries: Country[];
+  defaultCountry: string;
+  cancelled: boolean;
+  simulated: boolean;
+  storeOpen: boolean;
+  closedMessage: string;
+  profile: CheckoutProfile | null;
+}) {
   const lines = useCart((s) => s.lines);
   const promoCode = useCart((s) => s.promoCode);
   const giftWrap = useCart((s) => s.giftWrap);
@@ -33,11 +52,15 @@ export function Checkout({ countries, defaultCountry, cancelled, simulated, stor
   const setGift = useCart((s) => s.setGift);
 
   const [form, setForm] = useState<Form>(() => {
-    const initial = empty(countries.some((c) => c.code === defaultCountry) ? defaultCountry : (countries[0]?.code ?? "FR"));
+    const base = empty(countries.some((c) => c.code === defaultCountry) ? defaultCountry : (countries[0]?.code ?? "FR"));
+    // Cliente connectée : ses coordonnées connues servent de départ
+    const initial: Form = profile ? { ...base, ...Object.fromEntries(Object.entries(profile).filter(([, v]) => v)) } : base;
     if (typeof window === "undefined") return initial;
     try {
       const saved = JSON.parse(localStorage.getItem(STORAGE) ?? "null") as Partial<Form> | null;
-      return saved ? { ...initial, ...saved, country: countries.some((c) => c.code === saved.country) ? saved.country! : initial.country } : initial;
+      if (!saved) return initial;
+      const filled = Object.fromEntries(Object.entries(saved).filter(([, v]) => v !== "" && v !== null && v !== undefined));
+      return { ...initial, ...filled, country: countries.some((c) => c.code === saved.country) ? saved.country! : initial.country };
     } catch {
       return initial;
     }
@@ -51,6 +74,8 @@ export function Checkout({ countries, defaultCountry, cancelled, simulated, stor
   const [quotedAddress, setQuotedAddress] = useState<AddressInput | null>(null);
   // Étape 1 validée : on passe aux coordonnées
   const [confirmed, setConfirmed] = useState(false);
+  // Créneau choisi (retrait ou livraison locale)
+  const [slot, setSlot] = useState({ date: "", slot: "" });
   const [accept, setAccept] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
@@ -85,6 +110,7 @@ export function Checkout({ countries, defaultCountry, cancelled, simulated, stor
     setDelivery(choice);
     setConfirmed(false);
     setMethodId(null);
+    setSlot({ date: "", slot: "" });
   };
   const quoteManual = (patch: Partial<Form> = {}) => {
     const next = { ...form, ...patch };
@@ -97,6 +123,9 @@ export function Checkout({ countries, defaultCountry, cancelled, simulated, stor
   const addressReady = !pickup && Boolean(quotedAddress) && view !== null && !loading;
   // Tant que retrait/livraison n'est pas choisi, le total n'inclut pas de frais de port
   const shippingKnown = pickup || Boolean(delivery && quotedAddress);
+  // Créneau à choisir : retrait, ou livraison à domicile autour de la boutique
+  const slotDays = !view?.slots ? null : pickup ? view.slots.pickup : view.shipping.mode === "local" ? view.slots.local : null;
+  const slotMissing = Boolean(slotDays) && (!slot.date || !slot.slot);
 
   const submit = () => {
     setError(null);
@@ -114,6 +143,8 @@ export function Checkout({ countries, defaultCountry, cancelled, simulated, stor
       delivery,
       country,
       methodId: selectedMethod?.id ?? "",
+      scheduledDate: slotDays ? slot.date : "",
+      scheduledSlot: slotDays ? slot.slot : "",
       promoCode: promoCode || "",
       giftWrap,
       giftMessage,
@@ -164,6 +195,16 @@ export function Checkout({ countries, defaultCountry, cancelled, simulated, stor
           </p>
         )}
 
+        {!profile && (
+          <p className="text-[14px] text-gris">
+            Déjà cliente ?{" "}
+            <Link href="/compte?suite=/commande" className="text-bronze underline underline-offset-4">
+              Connectez-vous
+            </Link>{" "}
+            pour retrouver vos informations. Sinon, continuez sans compte.
+          </p>
+        )}
+
         <Step n={1} title="Retrait ou livraison ?">
           {confirmed && delivery ? (
             // Étape validée : résumé et retour possible
@@ -172,8 +213,13 @@ export function Checkout({ countries, defaultCountry, cancelled, simulated, stor
               <div className="min-w-0 flex-1 text-[14px]">
                 <p className="font-medium text-encre">{pickup ? `Retrait à la boutique · ${view?.pickup.address ?? ""}` : selectedMethod?.name}</p>
                 <p className="mt-0.5 text-gris">
-                  {pickup ? "Gratuit · adresse exacte et horaires envoyés par email après votre achat" : `${[form.line1, form.postalCode, form.city].filter(Boolean).join(" ")}${manual ? ` · ${countries.find((c) => c.code === form.country)?.name ?? ""}` : ""}`}
+                  {pickup ? "Gratuit · adresse exacte envoyée par email après votre achat" : `${[form.line1, form.postalCode, form.city].filter(Boolean).join(" ")}${manual ? ` · ${countries.find((c) => c.code === form.country)?.name ?? ""}` : ""}`}
                 </p>
+                {slotDays && slot.date && (
+                  <p className="mt-1 text-bronze first-letter:uppercase">
+                    {slotDayLabel(slot.date)} · {slotLabel(slot.slot)}
+                  </p>
+                )}
               </div>
               <button type="button" onClick={() => setConfirmed(false)} className="text-[13px] text-bronze underline underline-offset-4">
                 Modifier
@@ -211,8 +257,9 @@ export function Checkout({ countries, defaultCountry, cancelled, simulated, stor
                       <p className="mt-1 text-gris">L&apos;adresse exacte et les horaires vous sont envoyés par email dès votre achat.{view.pickup.instructions ? ` ${view.pickup.instructions}` : ""}</p>
                     </div>
                   </div>
-                  <button type="button" onClick={() => setConfirmed(true)} className="btn-primary">
-                    Continuer
+                  {slotDays && <SlotPicker title="Quand venez-vous la chercher ?" days={slotDays} date={slot.date} slot={slot.slot} onChange={(date, s) => setSlot({ date, slot: s })} />}
+                  <button type="button" disabled={slotMissing} onClick={() => setConfirmed(true)} className="btn-primary">
+                    {slotMissing ? "Choisissez un créneau" : "Continuer"}
                   </button>
                 </motion.div>
               )}
@@ -324,9 +371,12 @@ export function Checkout({ countries, defaultCountry, cancelled, simulated, stor
                           {view.shipping.customsNotice && <p className="rounded-xl bg-lin-clair px-4 py-3 text-[13px] text-encre/80">{view.shipping.customsNotice}</p>}
                         </div>
                       )}
+                      {view.shipping.served && slotDays && (
+                        <SlotPicker title="Quand souhaitez-vous être livrée ?" days={slotDays} date={slot.date} slot={slot.slot} onChange={(date, s) => setSlot({ date, slot: s })} />
+                      )}
                       {view.shipping.served && (
-                        <button type="button" onClick={() => setConfirmed(true)} className="btn-primary">
-                          Valider cette adresse
+                        <button type="button" disabled={slotMissing} onClick={() => setConfirmed(true)} className="btn-primary">
+                          {slotMissing ? "Choisissez un créneau" : "Valider cette adresse"}
                         </button>
                       )}
                     </motion.div>

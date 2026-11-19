@@ -49,6 +49,14 @@ export const settingsSchema = z.object({
     localTiers: z.array(z.object({ maxKm: z.number().positive().max(500), price: z.number().int().min(0).max(100_000) })).max(12),
     localFreeAbove: z.number().int().min(0).nullable(), // livraison locale offerte dès ce montant (devise de base)
     localEta: z.string().trim().max(120),
+    // Créneaux proposés à la caisse (retrait et livraison locale)
+    slotsEnabled: z.boolean(),
+    slotDays: z.array(z.number().int().min(0).max(6)).max(7), // 0 = dimanche
+    pickupSlots: z.array(z.string().regex(/^\d{2}:\d{2}-\d{2}:\d{2}$/)).max(12),
+    localSlots: z.array(z.string().regex(/^\d{2}:\d{2}-\d{2}:\d{2}$/)).max(12),
+    slotLeadHours: z.number().int().min(0).max(240),
+    slotHorizonDays: z.number().int().min(1).max(60),
+    closedDates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).max(100),
   }),
   // Identité légale (mentions légales, CGV, factures)
   legal: z.object({
@@ -102,6 +110,13 @@ export const defaultSettings: Settings = {
     ],
     localFreeAbove: 6000,
     localEta: "Livraison sous 24 à 48 h ouvrées",
+    slotsEnabled: true,
+    slotDays: [1, 2, 3, 4, 5, 6],
+    pickupSlots: ["10:00-12:00", "14:00-19:00"],
+    localSlots: ["10:00-13:00", "14:00-19:00"],
+    slotLeadHours: 24,
+    slotHorizonDays: 14,
+    closedDates: [],
   },
   legal: { companyName: "", status: "", siret: "", vatNumber: "", address: "7 Rue de la Ronde, 57050 Metz", mediator: "", vatRate: 20 },
 };

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
-import { authClient, isSupabaseConfigured } from "@/lib/supabase";
+import { adminDb, authClient, isSupabaseConfigured } from "@/lib/supabase";
 
 // Retour du lien de connexion envoyé par email (espace cliente) : ouvre la session puis redirige.
 export async function GET(request: NextRequest) {
@@ -21,5 +21,10 @@ export async function GET(request: NextRequest) {
       ? await supabase.auth.verifyOtp({ token_hash: tokenHash, type })
       : { error: new Error("Lien incomplet") };
 
+  if (!error) {
+    // Le lien est arrivé dans sa boîte mail : l'adresse est confirmée (accès aux commandes passées sans compte)
+    const { data } = await supabase.auth.getUser();
+    if (data.user) await adminDb().from("customers").upsert({ id: data.user.id, email_verified_at: new Date().toISOString() }, { onConflict: "id" });
+  }
   return NextResponse.redirect(`${origin}${error ? "/compte?erreur=lien" : next}`);
 }

@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { ArrowRight, Loader2 } from "lucide-react";
+import Link from "next/link";
 import clsx from "clsx";
 import { subscribeNewsletter } from "@/app/(site)/actions";
 
@@ -28,7 +29,12 @@ export function NewsletterForm({ source, dark, className }: { source: string; da
         </button>
       </div>
       {state?.error && <p className="mt-2 text-[13px] text-red-500">{state.error}</p>}
-      <p className={clsx("mt-3 text-[12px]", dark ? "text-creme/40" : "text-gris")}>Désinscription en un clic, à tout moment.</p>
+      <p className={clsx("mt-3 text-[12px]", dark ? "text-creme/40" : "text-gris")}>
+        <Link href="/desinscription" className="underline-offset-4 hover:underline">
+          Désinscription en un clic
+        </Link>
+        , à tout moment.
+      </p>
     </form>
   );
 }

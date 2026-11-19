@@ -65,6 +65,10 @@ export type OrderRow = {
   delivery_type: "postal" | "local" | "pickup";
   delivery_distance_km: number | null;
   ready_at: string | null;
+  invoice_number: string | null;
+  invoiced_at: string | null;
+  scheduled_date: string | null;
+  scheduled_slot: string | null;
   items?: OrderItemRow[];
 };
 
@@ -119,6 +123,14 @@ export function trackingSteps(type: OrderRow["delivery_type"]): { status: OrderS
     { status: "expediee", label: type === "local" ? "En livraison" : "Expédiée" },
     { status: "livree", label: "Livrée" },
   ];
+}
+
+/** « samedi 21 novembre · 14 h – 19 h », ou null sans créneau. */
+export function scheduleLabel(order: Pick<OrderRow, "scheduled_date" | "scheduled_slot">) {
+  if (!order.scheduled_date || !order.scheduled_slot) return null;
+  const day = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${order.scheduled_date}T12:00:00Z`));
+  const slot = order.scheduled_slot.replace(/:00/g, " h").replace(/:(\d{2})/g, " h $1").replace("-", " – ");
+  return `${day} · ${slot}`;
 }
 
 /** Étapes que l'admin fait avancer, dans l'ordre, selon le mode de livraison. */

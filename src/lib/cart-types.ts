@@ -1,6 +1,7 @@
 // Panier : types échangés entre le navigateur et le serveur.
 
 import type { Quote } from "./pricing.ts";
+import type { SlotDay } from "./slots.ts";
 
 export type CartLineInput = { variantId: string; quantity: number };
 
@@ -50,6 +51,8 @@ export type CartView = {
   pickup: { enabled: boolean; address: string; hours: string; instructions: string };
   /** near : position approximative de la boutique (≈ 1 km), pour classer les suggestions d'adresses */
   local: { enabled: boolean; radiusKm: number; near: { lat: number; lon: number } | null };
+  /** Créneaux réservables (null : la cliente ne choisit pas de créneau) */
+  slots: { pickup: SlotDay[]; local: SlotDay[] } | null;
 };
 
 export type DeliveryChoice = "livraison" | "retrait";

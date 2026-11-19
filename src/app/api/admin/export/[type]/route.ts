@@ -51,8 +51,10 @@ export async function GET(_: Request, { params }: RouteContext<"/api/admin/expor
     for (const [email, e] of map) rows.push([email, e.row.first_name, e.row.last_name, e.row.phone, countryName(e.row.ship_country), e.count, [...e.spent].map(([c, a]) => `${fmt(a, c)} ${c}`).join(" + "), new Date(e.row.created_at).toLocaleDateString("fr-FR"), e.row.marketing_consent ? "oui" : "non"]);
   } else if (type === "newsletter") {
     const { data } = await db.from("newsletter_subscribers").select("*").is("unsubscribed_at", null).order("subscribed_at", { ascending: false });
-    rows = [["Email", "Prénom", "Source", "Inscription"]];
-    for (const s of data ?? []) rows.push([s.email, s.first_name, s.source, new Date(s.subscribed_at).toLocaleDateString("fr-FR")]);
+    // Le lien de désinscription est à insérer dans chaque newsletter envoyée (obligation légale)
+    const site = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
+    rows = [["Email", "Prénom", "Source", "Inscription", "Lien de désinscription"]];
+    for (const s of data ?? []) rows.push([s.email, s.first_name, s.source, new Date(s.subscribed_at).toLocaleDateString("fr-FR"), `${site}/desinscription?t=${s.unsubscribe_token}`]);
   } else if (type === "produits") {
     const { data } = await db.from("products").select("name, slug, status, category:categories(name), variants:product_variants(sku, label, price, compare_at_price, stock, active)").is("deleted_at", null).order("position");
     rows = [["Produit", "Adresse", "Statut", "Catégorie", "SKU", "Format", "Prix (€)", "Prix barré (€)", "Stock", "Actif"]];

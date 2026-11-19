@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Manrope } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { getSettings } from "@/lib/settings";
 import "./globals.css";
 
@@ -35,7 +36,11 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="fr" className={`${cormorant.variable} ${manrope.variable}`}>
-      <body className="min-h-dvh">{children}</body>
+      <body className="min-h-dvh">
+        {children}
+        {/* Mesure d'audience Vercel : sans cookie, active une fois le site en ligne sur Vercel */}
+        <Analytics />
+      </body>
     </html>
   );
 }

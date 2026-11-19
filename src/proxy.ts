@@ -54,6 +54,8 @@ export async function proxy(request: NextRequest) {
 
   const internalPath = pathname === "/" ? ADMIN_PREFIX : `${ADMIN_PREFIX}${pathname}`;
   const isLogin = internalPath === `${ADMIN_PREFIX}/login`;
+  // Pages accessibles sans être connecté : mot de passe oublié et retour du lien de réinitialisation
+  const isPublic = isLogin || internalPath === `${ADMIN_PREFIX}/mot-de-passe-oublie` || internalPath === `${ADMIN_PREFIX}/auth/reset`;
 
   // Rafraîchit la session Supabase et protège toutes les pages sauf la connexion.
   // (Le rôle de l'utilisateur est vérifié ensuite par chaque page : lib/admin-auth.ts)
@@ -76,7 +78,7 @@ export async function proxy(request: NextRequest) {
   }
 
   let response: NextResponse;
-  if (!loggedIn && !isLogin) {
+  if (!loggedIn && !isPublic) {
     response = NextResponse.redirect(`${origin}/login`);
   } else if (loggedIn && isLogin) {
     response = NextResponse.redirect(`${origin}/`);

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { adminDb, getAdminUser } from "@/lib/supabase";
 import { AdminNav, type NavCounts } from "./AdminNav";
+import { OrderAlert } from "./OrderAlert";
+import { canAccess } from "@/config/admin";
 
 export const metadata: Metadata = { title: { default: "Admin", template: "%s · Admin ISSEYE" }, robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -25,6 +27,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
     <div className="min-h-dvh bg-lin-clair lg:pl-64 print:bg-white print:pl-0">
       <AdminNav email={user.email} role={user.role} siteUrl={siteUrl} counts={counts} />
       <main className="mx-auto max-w-6xl px-4 pt-6 pb-20 sm:px-8 lg:pt-10">{children}</main>
+      {canAccess(user.role, "orders") && <OrderAlert startAt={new Date().toISOString()} />}
     </div>
   );
 }

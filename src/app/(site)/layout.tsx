@@ -8,9 +8,12 @@ import { getMenu } from "@/lib/menus";
 import { getSettings } from "@/lib/settings";
 import { getVisitorCurrency } from "@/lib/currencies";
 import { getAnnouncements } from "@/lib/content";
+import { hasSessionCookie } from "@/lib/customer";
+import { WishlistSync } from "@/components/cart/WishlistSync";
+import { WhatsAppButton } from "@/components/WhatsAppButton";
 
 export default async function SiteLayout({ children }: LayoutProps<"/">) {
-  const [header, footer, settings, currency, announcements] = await Promise.all([getMenu("header"), getMenu("footer"), getSettings(), getVisitorCurrency(), getAnnouncements()]);
+  const [header, footer, settings, currency, announcements, signedIn] = await Promise.all([getMenu("header"), getMenu("footer"), getSettings(), getVisitorCurrency(), getAnnouncements(), hasSessionCookie()]);
   const bar = announcements.bar?.content.text ? announcements.bar : null;
   const currencyLabel = `Prix en ${currency.symbol}`;
   // Clé du bandeau : s'il change (autre annonce ou autre texte), il réapparaît même après avoir été fermé
@@ -31,6 +34,8 @@ export default async function SiteLayout({ children }: LayoutProps<"/">) {
       <main>{children}</main>
       <Footer items={footer} settings={settings} currencyLabel={currencyLabel} />
       <CartDrawer />
+      <WishlistSync signedIn={signedIn} />
+      <WhatsAppButton number={settings.contact.whatsapp} brand={settings.brand.name} />
       {announcements.popup && <AnnouncementPopup popup={announcements.popup} />}
     </div>
   );

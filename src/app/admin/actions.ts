@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { adminRoleFor, authClient } from "@/lib/supabase";
+import { sendAdminResetLink } from "@/lib/auth-links";
 
 export type LoginState = { error?: string } | undefined;
 
@@ -27,4 +28,13 @@ export async function logout() {
   const supabase = await authClient();
   await supabase.auth.signOut();
   redirect("/login");
+}
+
+export type ResetState = { ok?: string; error?: string } | undefined;
+
+export async function requestPasswordReset(_: ResetState, formData: FormData): Promise<ResetState> {
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "Adresse email invalide." };
+  await sendAdminResetLink(email);
+  return { ok: "Si cette adresse a un accès à l'espace de gestion, un lien vient de lui être envoyé. Il est valable une heure." };
 }

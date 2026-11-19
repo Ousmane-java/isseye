@@ -25,7 +25,17 @@ export default async function OrderTrackingPage({ params }: PageProps<"/suivi/[t
       <div className="mt-14">
         <OrderSummary order={order} currency={currency} />
       </div>
-      <p className="mt-14 text-sm text-gris">
+      <div className="mt-14 flex flex-wrap gap-4">
+        <Link href={`/panier/recommander/${order.access_token}`} className="btn-primary">
+          Commander à nouveau
+        </Link>
+        {order.invoice_number && (
+          <a href={`/facture/${order.access_token}`} target="_blank" className="btn-outline text-encre">
+            Facture {order.invoice_number}
+          </a>
+        )}
+      </div>
+      <p className="mt-10 text-sm text-gris">
         Une question sur cette commande ?{" "}
         <Link href={`/contact?commande=${order.number}`} className="text-bronze underline underline-offset-4">
           Écrivez-nous

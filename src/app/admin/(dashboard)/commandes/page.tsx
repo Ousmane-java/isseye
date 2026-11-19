@@ -5,7 +5,7 @@ import { adminDb } from "@/lib/supabase";
 import { getCurrencies } from "@/lib/currencies";
 import { formatMoney } from "@/lib/currency";
 import { countryName } from "@/config/countries";
-import { statusLabel, statusTone, type OrderStatus } from "@/lib/order-types";
+import { scheduleLabel, statusLabel, statusTone, type OrderStatus } from "@/lib/order-types";
 import { Badge, Card, EmptyState, PageHeader, ExportLink } from "@/components/admin/ui";
 
 export const metadata: Metadata = { title: "Commandes" };
@@ -31,7 +31,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/com
 
   let query = adminDb()
     .from("orders")
-    .select("id, number, created_at, status, first_name, last_name, email, ship_country, total, currency_code, shipping_method, delivery_type", { count: "exact" })
+    .select("id, number, created_at, status, first_name, last_name, email, ship_country, total, currency_code, shipping_method, delivery_type, scheduled_date, scheduled_slot", { count: "exact" })
     .order("created_at", { ascending: false })
     .range((page - 1) * PER_PAGE, page * PER_PAGE - 1);
   if (statut === "a-traiter") query = query.in("status", ["payee", "en_preparation", "prete_retrait"]);
@@ -92,7 +92,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/com
                     </span>
                     <span className="order-4 col-span-2 text-sm sm:order-none sm:col-span-1">
                       {o.delivery_type === "pickup" ? "Retrait boutique" : o.delivery_type === "local" ? "Livraison locale" : countryName(o.ship_country)}
-                      <span className="block text-[12px] text-gris">{o.shipping_method}</span>
+                      <span className="block text-[12px] text-gris">{scheduleLabel(o) ?? o.shipping_method}</span>
                     </span>
                     <span className="order-2 sm:order-none">
                       <Badge tone={statusTone[status]}>{statusLabel({ status, delivery_type: o.delivery_type })}</Badge>

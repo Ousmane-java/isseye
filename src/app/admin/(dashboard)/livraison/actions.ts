@@ -10,6 +10,7 @@ import type { ActionState } from "@/lib/admin-types";
 import { getSettings } from "@/lib/settings";
 import { geocodeFR, roadDistanceKm } from "@/lib/geo";
 import { localPrice } from "@/lib/delivery";
+import { isValidSlot } from "@/lib/slots";
 
 const text = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const done = (ok: string): ActionState => {
@@ -106,7 +107,25 @@ export async function saveLocalDelivery(_: ActionState, fd: FormData): Promise<A
   const freeAbove = free ? parseMoney(free, { decimals: 2 }) : null;
   if (free && freeAbove === null) return { error: "Montant de livraison offerte invalide." };
 
+  // Créneaux
+  const lines = (k: string) => text(fd, k).split(/[\n,;]+/).map((v) => v.trim()).filter(Boolean);
+  const normSlot = (v: string) => v.replace(/\s/g, "").replace(/h/gi, ":").replace(/:(?=-|$)/g, ":00").replace(/^(\d):/, "0$1:").replace(/-(\d):/, "-0$1:");
+  const pickupSlots = lines("pickupSlots").map(normSlot);
+  const localSlots = lines("localSlots").map(normSlot);
+  const badSlot = [...pickupSlots, ...localSlots].find((s) => !isValidSlot(s));
+  if (badSlot) return { error: `Créneau « ${badSlot} » invalide : écrivez par exemple 10:00-12:00.` };
+  const closedDates = lines("closedDates");
+  const badDate = closedDates.find((d) => !/^\d{4}-\d{2}-\d{2}$/.test(d));
+  if (badDate) return { error: `Jour fermé « ${badDate} » invalide : écrivez par exemple 2026-12-25.` };
+
   const delivery = {
+    slotsEnabled: fd.get("slotsEnabled") === "on",
+    slotDays: fd.getAll("slotDays").map(Number).filter((n) => n >= 0 && n <= 6),
+    pickupSlots,
+    localSlots,
+    slotLeadHours: Math.max(0, Math.min(240, Math.floor(Number(text(fd, "slotLeadHours")) || 0))),
+    slotHorizonDays: Math.max(1, Math.min(60, Math.floor(Number(text(fd, "slotHorizonDays")) || 14))),
+    closedDates,
     originAddress: geo.label,
     originLat: geo.lat,
     originLon: geo.lon,

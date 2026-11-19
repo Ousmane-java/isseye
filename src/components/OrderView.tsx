@@ -3,7 +3,7 @@ import { Check } from "lucide-react";
 import clsx from "clsx";
 import { formatMoney, type Currency } from "@/lib/currency";
 import { countryName } from "@/config/countries";
-import { statusLabels, trackingSteps, type OrderRow } from "@/lib/order-types";
+import { scheduleLabel, statusLabels, trackingSteps, type OrderRow } from "@/lib/order-types";
 
 const dateFormat = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeZone: "Europe/Paris" });
 
@@ -77,6 +77,7 @@ export function OrderSummary({ order, currency }: { order: OrderRow; currency: P
             <br />
             {countryName(order.ship_country)}
           </p>
+          {scheduleLabel(order) && <p className="mt-2 font-medium text-bronze first-letter:uppercase">{scheduleLabel(order)}</p>}
         </div>
         {order.gift_message && (
           <div>

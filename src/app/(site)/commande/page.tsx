@@ -5,13 +5,16 @@ import { getSettings } from "@/lib/settings";
 import { servedCountries } from "@/lib/shipping-types";
 import { paymentSimulated } from "@/lib/stripe";
 import { countryName } from "@/config/countries";
+import { getCheckoutProfile, getCustomer } from "@/lib/customer";
 import { PageIntro } from "@/components/PageIntro";
 import { Checkout } from "@/components/checkout/Checkout";
 
 export const metadata: Metadata = { title: "Commande", robots: { index: false } };
 
 export default async function CheckoutPage({ searchParams }: PageProps<"/commande">) {
-  const [zones, country, settings, params] = await Promise.all([getShippingZones(), getVisitorCountry(), getSettings(), searchParams]);
+  const [zones, country, settings, params, customer] = await Promise.all([getShippingZones(), getVisitorCountry(), getSettings(), searchParams, getCustomer()]);
+  // Cliente connectée : caisse pré-remplie avec ses coordonnées et sa dernière adresse
+  const profile = customer ? await getCheckoutProfile(customer) : null;
   const countries = servedCountries(zones)
     .map((code) => ({ code, name: countryName(code) }))
     .sort((a, b) => a.name.localeCompare(b.name, "fr"));
@@ -25,6 +28,7 @@ export default async function CheckoutPage({ searchParams }: PageProps<"/command
         simulated={paymentSimulated()}
         storeOpen={settings.store.open}
         closedMessage={settings.store.closedMessage}
+        profile={profile}
       />
     </>
   );

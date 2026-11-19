@@ -8,6 +8,8 @@ import { isSupabaseConfigured } from "@/lib/supabase";
 import { ClearCart } from "@/components/cart/ClearCart";
 import { OrderSummary, OrderTimeline } from "@/components/OrderView";
 import { MaskLines } from "@/components/motion/Reveal";
+import { CreateAccountFromOrder } from "@/components/AccountForms";
+import { getCustomer } from "@/lib/customer";
 
 export const metadata: Metadata = { title: "Merci", robots: { index: false } };
 
@@ -27,7 +29,8 @@ export default async function ConfirmationPage({ searchParams }: PageProps<"/com
     }
   }
 
-  const currency = (await getCurrencies()).find((c) => c.code === order.currency_code)!;
+  const [currencies, customer] = await Promise.all([getCurrencies(), getCustomer()]);
+  const currency = currencies.find((c) => c.code === order.currency_code)!;
   const paid = order.status !== "en_attente_paiement" && order.status !== "abandonnee";
 
   return (
@@ -46,10 +49,16 @@ export default async function ConfirmationPage({ searchParams }: PageProps<"/com
       <div className="mt-14">
         <OrderSummary order={order} currency={currency} />
       </div>
+      {!customer && paid && <CreateAccountFromOrder token={order.access_token} email={order.email} />}
       <div className="mt-14 flex flex-wrap gap-4">
         <Link href={`/suivi/${order.access_token}`} className="btn-primary">
           Suivre ma commande
         </Link>
+        {order.invoice_number && (
+          <a href={`/facture/${order.access_token}`} target="_blank" className="btn-outline text-encre">
+            Facture
+          </a>
+        )}
         <Link href="/boutique" className="btn-outline text-encre">
           Continuer mes achats
         </Link>

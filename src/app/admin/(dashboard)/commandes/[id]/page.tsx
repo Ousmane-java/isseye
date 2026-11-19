@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Check, ExternalLink, Gift, Mail, MapPin, MessageCircle, Navigation, Phone, Store, Truck } from "lucide-react";
+import { ArrowLeft, Check, ExternalLink, FileText, Gift, Mail, MapPin, MessageCircle, Navigation, Phone, Store, Truck } from "lucide-react";
 import type { ReactNode } from "react";
 import { requireAdmin } from "@/lib/admin-auth";
 import { adminDb } from "@/lib/supabase";
@@ -10,7 +10,7 @@ import { getCurrencies } from "@/lib/currencies";
 import { getSettings } from "@/lib/settings";
 import { formatMoney } from "@/lib/currency";
 import { countryName } from "@/config/countries";
-import { deliveryLabels, statusLabel, statusTone } from "@/lib/order-types";
+import { deliveryLabels, scheduleLabel, statusLabel, statusTone } from "@/lib/order-types";
 import { Badge, Card } from "@/components/admin/ui";
 import { NotesForm, OrderStepper, RefundForm, TrackingForm } from "./OrderActions";
 
@@ -79,6 +79,11 @@ export default async function OrderPage({ params }: PageProps<"/admin/commandes/
           <a href={`${siteUrl}/suivi/${order.access_token}`} target="_blank" className="mt-1 flex items-center justify-end gap-1.5 text-bronze print:hidden">
             Page de suivi de la cliente <ExternalLink className="size-3.5" />
           </a>
+          {order.paid_at && (
+            <a href={`/api/admin/facture/${order.id}`} target="_blank" className="mt-1 flex items-center justify-end gap-1.5 text-bronze print:hidden">
+              Facture {order.invoice_number ?? ""} (PDF) <FileText className="size-3.5" />
+            </a>
+          )}
         </div>
       </header>
 
@@ -90,6 +95,7 @@ export default async function OrderPage({ params }: PageProps<"/admin/commandes/
             <div className="grid gap-6 sm:grid-cols-2">
               <Info icon={ModeIcon} label={pickup ? "Retrait à la boutique" : order.delivery_type === "local" ? "Livraison locale" : "Envoi postal"}>
                 <p className="font-medium text-encre">{order.shipping_method}</p>
+                {scheduleLabel(order) && <p className="mt-0.5 rounded-lg bg-or/15 px-2 py-1 text-[13px] font-semibold text-bronze first-letter:uppercase">{scheduleLabel(order)}</p>}
                 {order.delivery_distance_km !== null && <p className="text-gris">{Number(order.delivery_distance_km).toLocaleString("fr-FR")} km de la boutique (par la route)</p>}
                 {order.tracking_number && (
                   <p className="mt-1">

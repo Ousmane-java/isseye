@@ -10,9 +10,16 @@ import type { CartLineView, CartRequest, CartView, ShippingOptionView } from "@/
 import type { ShippingMethod } from "@/lib/shipping-types";
 import { geocodeFR, roadDistanceKm } from "@/lib/geo";
 import { localRadius, localTier, publicPickupLabel } from "@/lib/delivery";
+import { availableDays } from "@/lib/slots";
+import type { Settings } from "@/lib/settings-schema";
 
 // Calcul serveur du panier : prix, stock, livraison, code promo. Utilisé pour l'affichage
 // (tiroir, page panier, caisse) et refait à l'identique au moment de créer la commande.
+
+/** Réglages de créneaux pour le retrait ou la livraison locale. */
+export function slotSettings(d: Settings["delivery"], kind: "pickup" | "local") {
+  return { days: d.slotDays, slots: kind === "pickup" ? d.pickupSlots : d.localSlots, leadHours: d.slotLeadHours, horizonDays: d.slotHorizonDays, closedDates: d.closedDates };
+}
 
 export type ResolvedLine = CartLineView & { product: RawProduct; variant: RawVariant; categoryId: string | null };
 
@@ -231,5 +238,6 @@ export async function buildCart(req: CartRequest, { fresh = false }: { fresh?: b
       radiusKm: localRadius(d.localTiers),
       near: d.originLat !== null && d.originLon !== null ? { lat: Math.round(d.originLat * 100) / 100, lon: Math.round(d.originLon * 100) / 100 } : null,
     },
+    slots: d.slotsEnabled ? { pickup: availableDays(slotSettings(d, "pickup")), local: availableDays(slotSettings(d, "local")) } : null,
   };
 }

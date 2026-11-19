@@ -34,11 +34,12 @@ Sans clé Stripe **en développement**, le paiement est simulé : tout le parcou
 ## Mise en route (une seule fois)
 
 1. **Supabase** : créer un projet (région Europe), puis dans **SQL Editor** exécuter dans l'ordre
-   `supabase/migrations/0001_catalog.sql` à `0006_order_events.sql`, dans l'ordre (réexécutables sans risque).
+   `supabase/migrations/0001_catalog.sql` à `0008_customer_accounts.sql`, dans l'ordre (réexécutables sans risque).
    La 0004 crée Luna et Noir (textes et prix de départ à ajuster), les notes, la livraison, la FAQ ;
-   la 0005 ajoute le retrait en boutique et la livraison locale ; la 0006 l'historique des commandes.
+   la 0005 ajoute le retrait en boutique et la livraison locale ; la 0006 l'historique des commandes ;
+   la 0007 les créneaux et les factures numérotées ; la 0008 les comptes clientes (email + mot de passe).
 2. **Authentication › Users › Add user** : créer le compte de la propriétaire ; mettre son email dans `ADMIN_EMAILS`.
-3. **Authentication › URL Configuration** : ajouter `https://isseye.com/auth/confirm` (et `http://localhost:3000/auth/confirm`) aux Redirect URLs — lien de connexion de l'espace cliente.
+3. **Authentication › URL Configuration** : ajouter `https://isseye.com/auth/confirm` (et `http://localhost:3000/auth/confirm`) aux Redirect URLs — liens de confirmation d'email et de mot de passe oublié.
 4. **Project Settings › API** : copier l'URL, la clé `anon` et la clé `service_role` dans `.env.local`.
 5. **Stripe** : clé secrète dans `STRIPE_SECRET_KEY`. Webhook vers `https://isseye.com/api/stripe/webhook` avec les événements
    `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired` ;
@@ -56,10 +57,20 @@ Accueil → boutique (filtres Pour elle / Pour lui / famille…) → fiche parfu
    - *Livraison* : l'adresse est proposée pendant la saisie (géocodage IGN, adresses proches de Metz d'abord) ; la distance par la route
      depuis la boutique donne le prix de la **livraison locale** (tranches de km, Admin › Livraison) ; hors zone : **Colissimo / point relais** ;
      étranger : saisie manuelle et zones postales (DHL…).
-2. **Coordonnées**, puis **cadeau** et code promo → paiement Stripe dans la devise de la cliente → confirmation et email
+   Retrait et livraison locale : choix d'un **créneau** (jours, plages et délai réglés dans Admin › Livraison).
+2. **Coordonnées** (pré-remplies si la cliente est connectée), puis **cadeau** et code promo → paiement Stripe dans la devise de la cliente → confirmation et email
    → suivi par lien (`/suivi/…`) ou numéro + email (`/suivi`).
 
-Espace cliente facultatif (`/compte`, connexion par lien email), favoris sans compte.
+Après le paiement : **facture PDF numérotée** (F-2026-0001…, sans trou) téléchargeable depuis la confirmation, le suivi et l'espace.
+
+**Espace cliente** (`/compte`, facultatif) : création avec **email + mot de passe** seulement ; nom, téléphone et adresse se complètent
+ensuite dans « Mes informations » et sont proposés à la caisse. Après une commande sans compte, la page de confirmation propose
+de créer son espace en choisissant **juste un mot de passe** : la commande et ses coordonnées y sont reprises.
+Les commandes passées sans compte avec la même adresse apparaissent une fois l'email confirmé (lien envoyé à l'inscription).
+Mot de passe oublié, favoris synchronisés avec le compte, « Commander à nouveau », factures, newsletter (désinscription en un clic).
+En développement sans Resend, les liens (confirmation, mot de passe) s'affichent dans le terminal.
+
+Bonus : bouton WhatsApp (numéro dans Réglages), Vercel Analytics, alerte sonore de nouvelle commande dans l'admin.
 
 ## Admin (admin.isseye.com)
 

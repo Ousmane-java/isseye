@@ -70,6 +70,45 @@ export function LocalDeliveryForm({ delivery }: { delivery: Settings["delivery"]
           </div>
         </div>
 
+        <div className="space-y-4 rounded-xl bg-lin-clair p-4">
+          <label className="flex items-center gap-2 text-sm font-semibold">
+            <input type="checkbox" name="slotsEnabled" defaultChecked={delivery.slotsEnabled} className="size-4 accent-noir" /> La cliente choisit un jour et un créneau (retrait et livraison locale)
+          </label>
+          <fieldset>
+            <legend className="label">Jours ouverts</legend>
+            <div className="flex flex-wrap gap-3 text-sm">
+              {[1, 2, 3, 4, 5, 6, 0].map((d) => (
+                <label key={d} className="flex items-center gap-1.5">
+                  <input type="checkbox" name="slotDays" value={d} defaultChecked={delivery.slotDays.includes(d)} className="size-4 accent-noir" />
+                  {["Dim.", "Lun.", "Mar.", "Mer.", "Jeu.", "Ven.", "Sam."][d]}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block">
+              <span className="label">Créneaux de retrait (un par ligne)</span>
+              <textarea name="pickupSlots" defaultValue={delivery.pickupSlots.join("\n")} rows={3} className="field resize-y font-mono text-sm" placeholder={"10:00-12:00\n14:00-19:00"} />
+            </label>
+            <label className="block">
+              <span className="label">Créneaux de livraison locale (un par ligne)</span>
+              <textarea name="localSlots" defaultValue={delivery.localSlots.join("\n")} rows={3} className="field resize-y font-mono text-sm" placeholder={"10:00-13:00\n14:00-19:00"} />
+            </label>
+            <label className="block">
+              <span className="label">Délai minimum avant un créneau (heures)</span>
+              <input name="slotLeadHours" type="number" min={0} max={240} defaultValue={delivery.slotLeadHours} className="field" />
+            </label>
+            <label className="block">
+              <span className="label">Jours proposés à l&apos;avance</span>
+              <input name="slotHorizonDays" type="number" min={1} max={60} defaultValue={delivery.slotHorizonDays} className="field" />
+            </label>
+            <label className="block sm:col-span-2">
+              <span className="label">Jours fermés (un par ligne, ex. 2026-12-25)</span>
+              <textarea name="closedDates" defaultValue={delivery.closedDates.join("\n")} rows={2} className="field resize-y font-mono text-sm" />
+            </label>
+          </div>
+        </div>
+
         <div className="flex items-center gap-3">
           <SubmitButton>Enregistrer</SubmitButton>
           <Feedback state={state} />
