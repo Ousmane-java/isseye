@@ -5,7 +5,7 @@ import { getStripe } from "@/lib/stripe";
 import { finalizePaidOrder } from "@/lib/orders";
 
 // Stripe → ISSEYE : confirmation des paiements, paiements expirés ou refusés.
-// À déclarer dans Stripe (Développeurs › Webhooks) : https://isseye.com/api/stripe/webhook
+// À déclarer dans Stripe (Développeurs › Webhooks) : https://isseyes.com/api/stripe/webhook
 // Événements : checkout.session.completed, checkout.session.async_payment_succeeded,
 // checkout.session.async_payment_failed, checkout.session.expired
 

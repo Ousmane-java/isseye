@@ -11,7 +11,7 @@ test("le HTML saisi est échappé, seuls les liens sûrs sont actifs", () => {
   assert.equal(markdownToHtml("<script>alert(1)</script>"), "<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>");
   assert.equal(markdownToHtml("[CGV](/cgv)"), '<p><a href="/cgv">CGV</a></p>');
   assert.equal(markdownToHtml("[x](javascript:alert(1))"), "<p>[x](javascript:alert(1))</p>");
-  assert.match(markdownToHtml("[Site](https://isseye.com)"), /target="_blank"/);
+  assert.match(markdownToHtml("[Site](https://isseyes.com)"), /target="_blank"/);
 });
 
 test("variables des modèles", () => {

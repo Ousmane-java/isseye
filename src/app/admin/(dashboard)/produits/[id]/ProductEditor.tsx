@@ -332,7 +332,7 @@ export function ProductEditor({
             <textarea value={p.seo_description} onChange={(e) => set("seo_description", e.target.value)} rows={2} className="field resize-y" />
           </F>
           <div className="rounded-xl bg-lin-clair p-4">
-            <p className="text-[13px] text-emerald-800">isseye.com › parfum › {p.slug}</p>
+            <p className="text-[13px] text-emerald-800">isseyes.com › parfum › {p.slug}</p>
             <p className="mt-1 text-lg text-[#1a0dab]">{(p.seo_title || `${p.name} · ${p.subtitle}`).slice(0, 65)} · ISSEYE</p>
             <p className="mt-1 text-[13px] text-gris">{(p.seo_description || p.description).slice(0, 160)}</p>
           </div>

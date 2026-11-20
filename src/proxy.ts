@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-// L'espace admin vit sur son propre sous-domaine : admin.isseye.com (en local : admin.localhost:3000).
+// L'espace admin vit sur son propre sous-domaine : admin.isseyes.com (en local : admin.localhost:3000).
 // Les pages sont rangées dans src/app/admin, mais s'affichent à la racine du sous-domaine :
 // admin.…/commandes → /admin/commandes.
 

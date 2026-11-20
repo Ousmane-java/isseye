@@ -39,13 +39,13 @@ Sans clé Stripe **en développement**, le paiement est simulé : tout le parcou
    la 0005 ajoute le retrait en boutique et la livraison locale ; la 0006 l'historique des commandes ;
    la 0007 les créneaux et les factures numérotées ; la 0008 les comptes clientes (email + mot de passe).
 2. **Authentication › Users › Add user** : créer le compte de la propriétaire ; mettre son email dans `ADMIN_EMAILS`.
-3. **Authentication › URL Configuration** : ajouter `https://isseye.com/auth/confirm` (et `http://localhost:3000/auth/confirm`) aux Redirect URLs — liens de confirmation d'email et de mot de passe oublié.
+3. **Authentication › URL Configuration** : ajouter `https://isseyes.com/auth/confirm` (et `http://localhost:3000/auth/confirm`) aux Redirect URLs — liens de confirmation d'email et de mot de passe oublié.
 4. **Project Settings › API** : copier l'URL, la clé `anon` et la clé `service_role` dans `.env.local`.
-5. **Stripe** : clé secrète dans `STRIPE_SECRET_KEY`. Webhook vers `https://isseye.com/api/stripe/webhook` avec les événements
+5. **Stripe** : clé secrète dans `STRIPE_SECRET_KEY`. Webhook vers `https://isseyes.com/api/stripe/webhook` avec les événements
    `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired` ;
    son secret dans `STRIPE_WEBHOOK_SECRET`.
-6. **Resend** : vérifier le domaine isseye.com, clé dans `RESEND_API_KEY`.
-7. **Vercel** : ajouter `isseye.com` et `admin.isseye.com` au projet, renseigner toutes les variables, `CRON_SECRET` compris (tâches quotidiennes de `vercel.json`).
+6. **Resend** : vérifier le domaine isseyes.com, clé dans `RESEND_API_KEY`.
+7. **Vercel** : ajouter `isseyes.com` et `admin.isseyes.com` au projet, renseigner toutes les variables, `CRON_SECRET` compris (tâches quotidiennes de `vercel.json`).
 8. **Admin › Réglages** : identité légale (mentions légales, CGV), email d'alerte, prix export, emballage cadeau.
 
 ## Parcours cliente
@@ -72,7 +72,7 @@ En développement sans Resend, les liens (confirmation, mot de passe) s'affichen
 
 Bonus : bouton WhatsApp (numéro dans Réglages), Vercel Analytics, alerte sonore de nouvelle commande dans l'admin.
 
-## Admin (admin.isseye.com)
+## Admin (admin.isseyes.com)
 
 | Section | Ce qu'on y fait |
 |---|---|

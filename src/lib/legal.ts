@@ -10,7 +10,7 @@ const or = (v: string) => (v.trim() ? v.trim() : missing);
 export function defaultLegalBody(slug: string, settings: Settings) {
   const { legal, contact, brand } = settings;
   const company = or(legal.companyName);
-  const site = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://isseye.com").replace(/^https?:\/\//, "").replace(/\/$/, "");
+  const site = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://isseyes.com").replace(/^https?:\/\//, "").replace(/\/$/, "");
 
   switch (slug) {
     case "mentions-legales":

@@ -16,7 +16,7 @@ const escape = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").rep
 /** Envoie un email. Sans clé Resend, l'email est seulement affiché dans la console du serveur. */
 export async function sendEmail({ to, subject, html, replyTo }: { to: string; subject: string; html: string; replyTo?: string }) {
   const key = process.env.RESEND_API_KEY;
-  const from = process.env.EMAIL_FROM ?? "ISSEYE <bonjour@isseye.com>";
+  const from = process.env.EMAIL_FROM ?? "ISSEYE <bonjour@isseyes.com>";
   if (!key) {
     console.info(`[email non envoyé : RESEND_API_KEY absente] à ${to} — ${subject}`);
     return false;
