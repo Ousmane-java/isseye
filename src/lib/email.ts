@@ -13,19 +13,28 @@ export type EmailTemplate = { key: string; name: string; subject: string; headin
 
 const escape = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
+export type EmailAttachment = { filename: string; content: Uint8Array };
+
 /** Envoie un email. Sans clé Resend, l'email est seulement affiché dans la console du serveur. */
-export async function sendEmail({ to, subject, html, replyTo }: { to: string; subject: string; html: string; replyTo?: string }) {
+export async function sendEmail({ to, subject, html, replyTo, attachments }: { to: string; subject: string; html: string; replyTo?: string; attachments?: EmailAttachment[] }) {
   const key = process.env.RESEND_API_KEY;
-  const from = process.env.EMAIL_FROM ?? "ISSEYE <bonjour@isseyes.com>";
+  const from = process.env.EMAIL_FROM ?? "ISSEYE <contact@isseyes.com>";
   if (!key) {
-    console.info(`[email non envoyé : RESEND_API_KEY absente] à ${to} — ${subject}`);
+    console.info(`[email non envoyé : RESEND_API_KEY absente] à ${to} — ${subject}${attachments?.length ? ` (pièces jointes : ${attachments.map((a) => a.filename).join(", ")})` : ""}`);
     return false;
   }
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from, to: [to], subject, html, ...(replyTo ? { reply_to: replyTo } : {}) }),
+      body: JSON.stringify({
+        from,
+        to: [to],
+        subject,
+        html,
+        ...(replyTo ? { reply_to: replyTo } : {}),
+        ...(attachments?.length ? { attachments: attachments.map((a) => ({ filename: a.filename, content: Buffer.from(a.content).toString("base64") })) } : {}),
+      }),
       signal: AbortSignal.timeout(10_000),
     });
     if (!res.ok) console.error("[email]", res.status, await res.text());
@@ -96,11 +105,11 @@ export async function sendTemplate(
   key: string,
   to: string,
   vars: Record<string, string | number | null | undefined>,
-  opts: { ctaUrl?: string; extraHtml?: string; template?: EmailTemplate; unsubscribeUrl?: string } = {},
+  opts: { ctaUrl?: string; extraHtml?: string; template?: EmailTemplate; unsubscribeUrl?: string; attachments?: EmailAttachment[] } = {},
 ) {
   const template = opts.template ?? (await getTemplate(key));
   if (!template || !template.enabled) return false;
   const { contact } = await getSettings();
   const { subject, html } = await renderTemplate(template, vars, opts);
-  return sendEmail({ to, subject, html, replyTo: contact.email || undefined });
+  return sendEmail({ to, subject, html, replyTo: contact.email || undefined, attachments: opts.attachments });
 }

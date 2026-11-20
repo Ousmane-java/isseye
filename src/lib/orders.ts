@@ -9,6 +9,7 @@ import { adminUrl, sendEmail, sendTemplate, siteUrl, unsubscribeUrlFor } from "@
 import { formatMoney, type Currency } from "@/lib/currency";
 import { countryName } from "@/config/countries";
 import { scheduleLabel, trackingSteps, type OrderRow } from "@/lib/order-types";
+import { buildInvoicePdf } from "@/lib/invoice";
 
 // Cycle de vie d'une commande : paiement confirmé, préparation, expédition, livraison,
 // annulation et remboursement. Chaque étape met à jour le stock et prévient la cliente.
@@ -102,7 +103,10 @@ export async function finalizePaidOrder(orderId: string, payment: { provider: st
   const vars = await orderVars(order);
   const summary = await orderSummaryHtml(order);
   await logOrderEvent(order.id, "creee", "Commande passée", false, "cliente");
-  const confirmed = await sendTemplate("order_confirmation", order.email, vars, { ctaUrl: trackingLink(order), extraHtml: progressHtml(order) + summary });
+  // Facture PDF jointe à la confirmation (si sa génération échoue, l'email part quand même)
+  const invoice = order.invoice_number ? await buildInvoicePdf(order).catch((err) => (console.error("[facture]", err), null)) : null;
+  const attachments = invoice ? [{ filename: `ISSEYE-${order.invoice_number}.pdf`, content: invoice }] : undefined;
+  const confirmed = await sendTemplate("order_confirmation", order.email, vars, { ctaUrl: trackingLink(order), extraHtml: progressHtml(order) + summary + (invoice ? `<p style="margin:20px 0 0;font-size:13px;color:#7a6e64">Votre facture ${order.invoice_number} est jointe à cet email (PDF).</p>` : ""), attachments });
   await logOrderEvent(order.id, "payee", `Paiement reçu (${payment.provider === "stripe" ? "Stripe" : "simulé"})`, confirmed, "système");
 
   const settings = await getSettings();

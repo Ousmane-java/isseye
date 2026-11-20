@@ -83,7 +83,7 @@ export const defaultSettings: Settings = {
     description:
       "ISSEYE, maison de parfums : eaux de parfum Pocket Parfum 30 ml, Luna pour elle et Noir pour lui. Livraison en France, en Europe, en Afrique et aux États-Unis.",
   },
-  contact: { email: "bonjour@isseyes.com", phone: "", whatsapp: "", instagram: "", tiktok: "", facebook: "", snapchat: "" },
+  contact: { email: "contact@isseyes.com", phone: "", whatsapp: "", instagram: "", tiktok: "", facebook: "", snapchat: "" },
   store: {
     open: true,
     closedMessage: "",
