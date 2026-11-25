@@ -48,3 +48,15 @@ export function PromoField({ view }: { view: CartView | null }) {
     </div>
   );
 }
+
+/** Code promo replié derrière un lien (ouvert d'office si un code est déjà saisi). */
+export function PromoToggle({ view }: { view: CartView | null }) {
+  const promoCode = useCart((s) => s.promoCode);
+  const [open, setOpen] = useState(Boolean(promoCode));
+  if (open || promoCode) return <PromoField view={view} />;
+  return (
+    <button type="button" onClick={() => setOpen(true)} className="text-[13px] text-encre underline decoration-encre/25 underline-offset-4 transition hover:decoration-encre">
+      Vous avez un code promo ?
+    </button>
+  );
+}

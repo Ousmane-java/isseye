@@ -11,7 +11,7 @@ import type { CartView } from "@/lib/cart-types";
 import { useCart } from "./store";
 import { useCartQuote } from "./useCartQuote";
 import { FreeShippingMeter, Notices } from "./CartLines";
-import { PromoField } from "./PromoField";
+import { PromoToggle } from "./PromoField";
 
 // Page panier : une grille unique (Article · Quantité · Total) alignée sur le récapitulatif,
 // identique avec un ou plusieurs parfums. Le tiroir garde sa liste compacte (CartLines).
@@ -52,7 +52,7 @@ export function CartPage() {
           <Notices notices={view.notices} />
         </div>
       )}
-      <div className="grid items-start gap-12 lg:grid-cols-[minmax(0,1fr)_26rem] lg:gap-16 xl:grid-cols-[minmax(0,1fr)_28rem] xl:gap-24">
+      <div className={summaryGrid}>
         <section aria-label="Articles">
           <div className={clsx("hidden border-b border-encre/10 pb-4 text-[11px] font-semibold tracking-[0.2em] text-gris uppercase lg:grid lg:gap-x-8", columns)}>
             <span className="col-span-2">
@@ -150,10 +150,8 @@ function Line({ line, view }: { line: CartView["lines"][number]; view: CartView 
 }
 
 function Summary({ view, loading }: { view: CartView; loading: boolean }) {
-  const promoCode = useCart((s) => s.promoCode);
   const giftWrap = useCart((s) => s.giftWrap);
   const setGift = useCart((s) => s.setGift);
-  const [promoOpen, setPromoOpen] = useState(Boolean(promoCode));
   const q = view.quote;
   const total = q.subtotal - q.discount + q.giftWrap;
   const money = (v: number) => formatMoney(v, view.currency);
@@ -213,13 +211,7 @@ function Summary({ view, loading }: { view: CartView; loading: boolean }) {
               <span className="text-[13px] text-gris">{view.giftWrap.price ? money(view.giftWrap.price) : "Offert"}</span>
             </label>
           )}
-          {promoOpen || promoCode ? (
-            <PromoField view={view} />
-          ) : (
-            <button type="button" onClick={() => setPromoOpen(true)} className="text-[13px] text-encre underline decoration-encre/25 underline-offset-4 transition hover:decoration-encre">
-              Vous avez un code promo ?
-            </button>
-          )}
+          <PromoToggle view={view} />
         </div>
 
         <div className="mt-6 flex items-baseline justify-between gap-4 border-t border-encre/10 pt-6">
@@ -237,21 +229,7 @@ function Summary({ view, loading }: { view: CartView; loading: boolean }) {
         <p className="mt-3 text-center text-[12px] text-gris">Sans création de compte</p>
       </div>
 
-      <ul className="mt-6 space-y-3 px-2 text-[13px] text-gris">
-        {view.freeShippingFrom !== null && (
-          <li className="flex items-center gap-3">
-            <Truck className="size-4 shrink-0 text-bronze" strokeWidth={1.5} /> Livraison offerte dès {money(view.freeShippingFrom)} d&apos;achat
-          </li>
-        )}
-        {view.pickup.enabled && (
-          <li className="flex items-center gap-3">
-            <Store className="size-4 shrink-0 text-bronze" strokeWidth={1.5} /> Retrait gratuit · {view.pickup.address}
-          </li>
-        )}
-        <li className="flex items-center gap-3">
-          <Lock className="size-4 shrink-0 text-bronze" strokeWidth={1.5} /> Paiement sécurisé · carte, Apple Pay, Google Pay
-        </li>
-      </ul>
+      <Reassurance view={view} />
 
       {/* Mobile : total et bouton toujours à portée de main */}
       <AnimatePresence>
@@ -276,3 +254,28 @@ function Summary({ view, loading }: { view: CartView; loading: boolean }) {
     </aside>
   );
 }
+
+/** Réassurance sous le récapitulatif (panier et caisse). */
+export function Reassurance({ view }: { view: CartView }) {
+  const money = (v: number) => formatMoney(v, view.currency);
+  return (
+    <ul className="mt-6 space-y-3 px-2 text-[13px] text-gris">
+      {view.freeShippingFrom !== null && (
+        <li className="flex items-center gap-3">
+          <Truck className="size-4 shrink-0 text-bronze" strokeWidth={1.5} /> Livraison offerte dès {money(view.freeShippingFrom)} d&apos;achat
+        </li>
+      )}
+      {view.pickup.enabled && (
+        <li className="flex items-center gap-3">
+          <Store className="size-4 shrink-0 text-bronze" strokeWidth={1.5} /> Retrait gratuit · {view.pickup.address}
+        </li>
+      )}
+      <li className="flex items-center gap-3">
+        <Lock className="size-4 shrink-0 text-bronze" strokeWidth={1.5} /> Paiement sécurisé · carte, Apple Pay, Google Pay
+      </li>
+    </ul>
+  );
+}
+
+/** Grille commune panier / caisse : contenu à gauche, récapitulatif aligné à droite. */
+export const summaryGrid = "grid items-start gap-12 lg:grid-cols-[minmax(0,1fr)_26rem] lg:gap-16 xl:grid-cols-[minmax(0,1fr)_28rem] xl:gap-24";

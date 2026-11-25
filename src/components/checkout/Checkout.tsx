@@ -3,15 +3,16 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, useTransition, type ReactNode } from "react";
-import { motion } from "motion/react";
-import { Gift, Loader2, Lock, MapPin, ShoppingBag, Store, Truck } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { ArrowLeft, Gift, Loader2, Lock, MapPin, ShoppingBag, Store, Truck } from "lucide-react";
 import clsx from "clsx";
 import { formatMoney } from "@/lib/currency";
 import { placeOrder, type CheckoutInput } from "@/app/(site)/actions";
 import { useCart } from "@/components/cart/store";
 import { useCartQuote } from "@/components/cart/useCartQuote";
 import { Notices } from "@/components/cart/CartLines";
-import { PromoField } from "@/components/cart/PromoField";
+import { PromoToggle } from "@/components/cart/PromoField";
+import { Reassurance, summaryGrid } from "@/components/cart/CartPage";
 import type { AddressInput, DeliveryChoice } from "@/lib/cart-types";
 import { AddressAutocomplete } from "./AddressAutocomplete";
 import { SlotPicker } from "./SlotPicker";
@@ -182,7 +183,7 @@ export function Checkout({
         e.preventDefault();
         submit();
       }}
-      className="mx-auto grid max-w-[1440px] gap-12 px-4 pb-32 sm:px-8 lg:grid-cols-[1.35fr_1fr] lg:gap-20"
+      className={clsx("mx-auto max-w-[1440px] px-4 pb-32 sm:px-8", summaryGrid)}
       noValidate
     >
       <div className="space-y-12">
@@ -438,8 +439,9 @@ export function Checkout({
       </div>
 
       {/* Récapitulatif */}
-      <aside className="h-fit rounded-2xl bg-lin-clair p-6 sm:p-8 lg:sticky lg:top-[calc(var(--bar-h,0px)+7rem)]">
-        <p className="font-display text-3xl text-encre">Récapitulatif</p>
+      <aside id="recapitulatif" className="scroll-mt-28 lg:sticky lg:top-[calc(var(--bar-h,0px)+7rem)]">
+      <div className="rounded-2xl bg-lin-clair p-6 sm:p-8">
+        <h2 className="font-display text-3xl text-encre">Récapitulatif</h2>
         {!view ? (
           <Spinner small />
         ) : (
@@ -447,26 +449,28 @@ export function Checkout({
             <div className="mt-4">
               <Notices notices={view.notices} />
             </div>
-            <ul className="mt-4 divide-y divide-encre/8">
+            <ul className="mt-5 divide-y divide-encre/10 border-y border-encre/10">
               {view.lines.map((l) => (
                 <li key={l.variantId} className="flex items-center gap-4 py-4">
-                  <span className="relative h-20 w-16 shrink-0 overflow-hidden bg-lin">
-                    {l.image && <Image src={l.image} alt="" fill sizes="64px" className="object-cover" />}
-                    <span className="absolute -top-0 -right-0 grid size-5 place-items-center rounded-bl-lg bg-noir text-[10px] font-bold text-creme">{l.quantity}</span>
+                  <span className="relative aspect-[4/5] w-[4.5rem] shrink-0 overflow-hidden rounded-sm bg-lin">
+                    {l.image && <Image src={l.image} alt="" fill sizes="72px" className="object-cover" />}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block font-display text-lg tracking-[0.06em] text-encre uppercase">{l.name}</span>
-                    <span className="block text-[12px] text-gris">{l.variantLabel}</span>
+                    <span className="block font-display text-xl tracking-[0.08em] text-encre uppercase">{l.name}</span>
+                    <span className="mt-0.5 block text-[12px] text-gris">{l.variantLabel}</span>
+                    <span className="mt-1 block text-[12px] text-gris tabular-nums">
+                      {l.quantity} × {formatMoney(l.unitPrice, view.currency)}
+                    </span>
                   </span>
-                  <span className="text-sm">{formatMoney(l.lineTotal, view.currency)}</span>
+                  <span className="text-[15px] font-medium text-encre tabular-nums">{formatMoney(l.lineTotal, view.currency)}</span>
                 </li>
               ))}
             </ul>
-            <div className="mt-4">
-              <PromoField view={view} />
+            <div className="mt-5">
+              <PromoToggle view={view} />
               {errors.promoCode && <p className="mt-2 text-[13px] text-red-700">{errors.promoCode}</p>}
             </div>
-            <dl className="mt-6 space-y-2 border-t border-encre/10 pt-5 text-[15px]">
+            <dl className="mt-6 space-y-3 border-t border-encre/10 pt-6 text-[15px] tabular-nums">
               <Row label="Sous-total" value={formatMoney(view.quote.subtotal, view.currency)} />
               {view.quote.discount > 0 && <Row label={`Réduction ${view.promo?.code ?? ""}`} value={`−${formatMoney(view.quote.discount, view.currency)}`} accent />}
               <Row
@@ -474,9 +478,9 @@ export function Checkout({
                 value={!delivery || !selectedMethod || (!pickup && !quotedAddress) ? "À l'étape 1" : selectedMethod.id === "retrait" ? "Gratuit" : view.quote.shipping === 0 ? "Offerte" : formatMoney(view.quote.shipping, view.currency)}
               />
               {view.quote.giftWrap > 0 && <Row label="Emballage cadeau" value={formatMoney(view.quote.giftWrap, view.currency)} />}
-              <div className="flex items-baseline justify-between border-t border-encre/10 pt-4">
-                <dt className="text-[12px] font-semibold tracking-[0.18em] uppercase">Total</dt>
-                <dd className="flex items-center gap-2 font-display text-3xl">
+              <div className="flex items-baseline justify-between gap-4 border-t border-encre/10 pt-6">
+                <dt className="text-[12px] font-semibold tracking-[0.2em] text-encre uppercase">Total</dt>
+                <dd className="flex items-center gap-2 text-2xl font-medium text-encre">
                   {loading && <Loader2 className="size-4 animate-spin text-gris" />}
                   {formatMoney(shippingKnown ? view.quote.total : view.quote.subtotal - view.quote.discount + view.quote.giftWrap, view.currency)}
                 </dd>
@@ -514,9 +518,15 @@ export function Checkout({
               {pending ? <Loader2 className="size-4 animate-spin" /> : <Lock className="size-4" strokeWidth={1.5} />}
               {pending ? "Redirection vers le paiement…" : !confirmed ? "Choisissez retrait ou livraison" : `Payer ${formatMoney(view.quote.total, view.currency)}`}
             </motion.button>
-            <p className="mt-4 text-center text-[12px] leading-relaxed text-gris">Paiement sécurisé par Stripe · Carte bancaire, Apple Pay, Google Pay. Montant débité en {view.currency.code}.</p>
+            <p className="mt-3 text-center text-[12px] text-gris">Paiement par Stripe · montant débité en {view.currency.code}</p>
           </>
         )}
+      </div>
+      {view && <Reassurance view={view} />}
+      <Link href="/panier" className="mt-6 inline-flex items-center gap-2 px-2 text-[12px] font-semibold tracking-[0.18em] text-encre uppercase transition hover:text-bronze">
+        <ArrowLeft className="size-4" strokeWidth={1.5} /> Modifier le panier
+      </Link>
+      {view && <MobileTotalBar total={formatMoney(shippingKnown ? view.quote.total : view.quote.subtotal - view.quote.discount + view.quote.giftWrap, view.currency)} />}
       </aside>
     </form>
   );
@@ -548,7 +558,7 @@ function Row({ label, value, accent }: { label: string; value: string; accent?: 
   return (
     <div className={clsx("flex justify-between gap-4", accent && "text-bronze")}>
       <dt className={accent ? "" : "text-gris"}>{label}</dt>
-      <dd className="shrink-0">{value}</dd>
+      <dd className={clsx("shrink-0 text-right", !accent && "text-encre")}>{value}</dd>
     </div>
   );
 }
@@ -558,5 +568,38 @@ function Spinner({ small }: { small?: boolean }) {
     <div className={clsx("grid place-items-center", small ? "py-8" : "min-h-[40vh]")}>
       <Loader2 className="size-6 animate-spin text-or" />
     </div>
+  );
+}
+
+/** Mobile : total toujours visible ; le bouton mène au récapitulatif (conditions et paiement). */
+function MobileTotalBar({ total }: { total: string }) {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const summary = document.getElementById("recapitulatif");
+    if (!summary) return;
+    const observer = new IntersectionObserver(([entry]) => setVisible(!entry.isIntersecting));
+    observer.observe(summary);
+    return () => observer.disconnect();
+  }, []);
+  return (
+    <AnimatePresence>
+      {visible && (
+        <motion.div
+          initial={{ y: "100%" }}
+          animate={{ y: 0 }}
+          exit={{ y: "100%" }}
+          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+          className="fixed inset-x-0 bottom-0 z-50 flex items-center gap-4 border-t border-encre/10 bg-creme/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur lg:hidden"
+        >
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold tracking-[0.18em] text-gris uppercase">Total</p>
+            <p className="text-lg font-medium text-encre tabular-nums">{total}</p>
+          </div>
+          <a href="#recapitulatif" className="btn-primary flex-1 !py-3">
+            Voir le récapitulatif
+          </a>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
