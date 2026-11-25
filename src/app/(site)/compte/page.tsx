@@ -8,6 +8,8 @@ import { formatMoney } from "@/lib/currency";
 import { getCheckoutProfile, getCustomer, ordersFilter } from "@/lib/customer";
 import { scheduleLabel, statusLabel, type OrderRow } from "@/lib/order-types";
 import { countries } from "@/config/countries";
+import clsx from "clsx";
+import { summaryGrid } from "@/components/cart/layout";
 import { logoutCustomer } from "../actions";
 import { PageIntro } from "@/components/PageIntro";
 import { AuthPanel, ChangePasswordForm, NewsletterToggle, ProfileForm, VerifyBanner } from "@/components/AccountForms";
@@ -69,7 +71,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/compte">
         {!customer.verified && <VerifyBanner email={customer.email} />}
       </div>
 
-      <div className="mx-auto mt-10 grid max-w-[1440px] gap-12 px-4 sm:px-8 lg:grid-cols-[1.5fr_1fr]">
+      <div className={clsx("mx-auto mt-10 max-w-[1440px] px-4 sm:px-8", summaryGrid)}>
         <div className="space-y-12">
           <section>
             <h2 className="font-display text-3xl text-encre">Mes commandes</h2>
@@ -130,7 +132,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/compte">
           </section>
         </div>
 
-        <aside className="h-fit space-y-6">
+        <aside className="space-y-6 lg:sticky lg:top-[calc(var(--bar-h,0px)+7rem)]">
           {incomplete && (
             <a href="#informations" className="block rounded-2xl bg-noir p-6 text-creme">
               <p className="font-display text-2xl">Complétez votre profil</p>

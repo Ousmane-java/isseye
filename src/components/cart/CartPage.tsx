@@ -12,6 +12,7 @@ import { useCart } from "./store";
 import { useCartQuote } from "./useCartQuote";
 import { FreeShippingMeter, Notices } from "./CartLines";
 import { PromoToggle } from "./PromoField";
+import { summaryCard, summaryGrid } from "./layout";
 
 // Page panier : une grille unique (Article · Quantité · Total) alignée sur le récapitulatif,
 // identique avec un ou plusieurs parfums. Le tiroir garde sa liste compacte (CartLines).
@@ -168,7 +169,7 @@ function Summary({ view, loading }: { view: CartView; loading: boolean }) {
 
   return (
     <aside className="lg:sticky lg:top-[calc(var(--bar-h,0px)+7rem)]">
-      <div className="rounded-2xl bg-lin-clair p-6 sm:p-8">
+      <div className={summaryCard}>
         <h2 className="font-display text-3xl text-encre">Récapitulatif</h2>
         <div className="mt-6">
           <FreeShippingMeter view={view} />
@@ -277,5 +278,3 @@ export function Reassurance({ view }: { view: CartView }) {
   );
 }
 
-/** Grille commune panier / caisse : contenu à gauche, récapitulatif aligné à droite. */
-export const summaryGrid = "grid items-start gap-12 lg:grid-cols-[minmax(0,1fr)_26rem] lg:gap-16 xl:grid-cols-[minmax(0,1fr)_28rem] xl:gap-24";

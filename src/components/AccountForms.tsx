@@ -276,7 +276,7 @@ export function NewsletterToggle({ subscribed }: { subscribed: boolean }) {
 export function CreateAccountFromOrder({ token, email }: { token: string; email: string }) {
   const [state, action, pending] = useActionState(createAccountFromOrder.bind(null, token), undefined);
   return (
-    <div className="mt-14 rounded-2xl bg-lin-clair p-6 sm:p-8">
+    <div className="rounded-2xl bg-lin-clair p-6 sm:p-8">
       <p className="font-display text-3xl text-encre">Gardez une trace de vos parfums</p>
       <p className="mt-2 max-w-xl text-[14px] text-gris">
         Créez votre espace en choisissant simplement un mot de passe : cette commande, vos factures et vos coordonnées y sont déjà. Identifiant : <strong className="text-encre">{email}</strong>

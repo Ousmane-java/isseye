@@ -12,7 +12,8 @@ import { useCart } from "@/components/cart/store";
 import { useCartQuote } from "@/components/cart/useCartQuote";
 import { Notices } from "@/components/cart/CartLines";
 import { PromoToggle } from "@/components/cart/PromoField";
-import { Reassurance, summaryGrid } from "@/components/cart/CartPage";
+import { Reassurance } from "@/components/cart/CartPage";
+import { summaryCard, summaryGrid } from "@/components/cart/layout";
 import type { AddressInput, DeliveryChoice } from "@/lib/cart-types";
 import { AddressAutocomplete } from "./AddressAutocomplete";
 import { SlotPicker } from "./SlotPicker";
@@ -440,7 +441,7 @@ export function Checkout({
 
       {/* Récapitulatif */}
       <aside id="recapitulatif" className="scroll-mt-28 lg:sticky lg:top-[calc(var(--bar-h,0px)+7rem)]">
-      <div className="rounded-2xl bg-lin-clair p-6 sm:p-8">
+      <div className={summaryCard}>
         <h2 className="font-display text-3xl text-encre">Récapitulatif</h2>
         {!view ? (
           <Spinner small />

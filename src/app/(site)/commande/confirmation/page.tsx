@@ -7,7 +7,8 @@ import { getStripe } from "@/lib/stripe";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { ClearCart } from "@/components/cart/ClearCart";
 import { OrderSummary, OrderTimeline } from "@/components/OrderView";
-import { MaskLines } from "@/components/motion/Reveal";
+import { PageIntro } from "@/components/PageIntro";
+import { ArrowLeft, FileText } from "lucide-react";
 import { CreateAccountFromOrder } from "@/components/AccountForms";
 import { getCustomer } from "@/lib/customer";
 
@@ -34,35 +35,43 @@ export default async function ConfirmationPage({ searchParams }: PageProps<"/com
   const paid = order.status !== "en_attente_paiement" && order.status !== "abandonnee";
 
   return (
-    <div className="page-top mx-auto max-w-[1100px] px-4 pb-32 sm:px-8">
+    <>
       <ClearCart />
-      <p className="eyebrow filet animate-fade-up text-bronze">Commande {order.number}</p>
-      <MaskLines as="h1" delay={0.1} lines={paid ? [`Merci, ${order.first_name}.`] : ["Paiement en cours…"]} className="mt-5 font-display text-[clamp(2.8rem,7vw,6rem)] leading-[0.95] font-light text-encre" />
-      <p className="mt-6 max-w-2xl text-[16px] leading-relaxed text-gris">
-        {paid
-          ? `Votre commande est confirmée. Un email récapitulatif vient d'être envoyé à ${order.email}, avec votre lien de suivi. Nous la préparons avec soin.`
-          : "Votre paiement est en cours de validation par votre banque. Vous recevrez un email de confirmation dès qu'il sera accepté."}
-      </p>
-      <div className="mt-12">
-        <OrderTimeline order={order} />
+      <PageIntro
+        eyebrow={`Commande ${order.number}`}
+        title={paid ? `Merci, ${order.first_name}.` : "Paiement en cours…"}
+        text={
+          paid
+            ? `Votre commande est confirmée. Un email récapitulatif vient d'être envoyé à ${order.email}${order.invoice_number ? ", avec votre facture" : ""}. Nous la préparons avec soin.`
+            : "Votre paiement est en cours de validation par votre banque. Vous recevrez un email de confirmation dès qu'il sera accepté."
+        }
+      />
+      <div className="mx-auto max-w-[1440px] px-4 pb-32 sm:px-8">
+        <div className="mb-14">
+          <OrderTimeline order={order} />
+        </div>
+        <OrderSummary
+          order={order}
+          currency={currency}
+          actions={
+            <>
+              <Link href={`/suivi/${order.access_token}`} className="btn-primary w-full">
+                Suivre ma commande
+              </Link>
+              {order.invoice_number && (
+                <a href={`/facture/${order.access_token}`} target="_blank" className="btn-outline w-full text-encre">
+                  <FileText className="size-4" strokeWidth={1.5} /> Facture {order.invoice_number}
+                </a>
+              )}
+              <Link href="/boutique" className="mt-1 inline-flex items-center justify-center gap-2 text-[12px] font-semibold tracking-[0.18em] text-encre uppercase transition hover:text-bronze">
+                <ArrowLeft className="size-4" strokeWidth={1.5} /> Continuer mes achats
+              </Link>
+            </>
+          }
+        >
+          {!customer && paid && <CreateAccountFromOrder token={order.access_token} email={order.email} />}
+        </OrderSummary>
       </div>
-      <div className="mt-14">
-        <OrderSummary order={order} currency={currency} />
-      </div>
-      {!customer && paid && <CreateAccountFromOrder token={order.access_token} email={order.email} />}
-      <div className="mt-14 flex flex-wrap gap-4">
-        <Link href={`/suivi/${order.access_token}`} className="btn-primary">
-          Suivre ma commande
-        </Link>
-        {order.invoice_number && (
-          <a href={`/facture/${order.access_token}`} target="_blank" className="btn-outline text-encre">
-            Facture
-          </a>
-        )}
-        <Link href="/boutique" className="btn-outline text-encre">
-          Continuer mes achats
-        </Link>
-      </div>
-    </div>
+    </>
   );
 }
